@@ -1,0 +1,31 @@
+{
+  "name": "vocapdf-backend",
+  "version": "1.0.0",
+  "description": "VocaPDF Backend Server - Dictionary lookup and word processing API",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": [
+    "vocabulary",
+    "dictionary",
+    "pdf",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.0",
+    "axios": "^1.6.0",
+    "cors": "^2.8.0",
+    "multer": "^1.4.0",
+    "dotenv": "^16.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
