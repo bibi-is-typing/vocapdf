@@ -14,6 +14,7 @@
  * @param {number} options.synonyms - 추출할 유의어 개수 (0, 1, 2)
  * @param {number} options.antonyms - 추출할 반의어 개수 (0, 1, 2)
  * @param {number} options.related - 추출할 관계어 개수 (0, 1, 2)
+ * @param {string} options.meaningDisplay - 의미 표시 옵션 ('english-only', 'korean-only', 'both')
  * @returns {Object} 가공된 단어 데이터
  */
 function extractMeanings(apiData, options) {
@@ -39,12 +40,24 @@ function extractMeanings(apiData, options) {
     // 의미 객체 구성
     const meaningData = {
       meaningNumber: i + 1,
-      partOfSpeech: meaning.partOfSpeech || '',
-      definition: firstDefinition.definition || '',
-      synonyms: extractArray(firstDefinition.synonyms, options.synonyms),
-      antonyms: extractArray(firstDefinition.antonyms, options.antonyms),
-      related: [] // Free Dictionary API는 관계어를 직접 제공하지 않음
+      partOfSpeech: meaning.partOfSpeech || ''
     };
+
+    // meaningDisplay 옵션에 따라 영영뜻 포함 여부 결정
+    if (options.meaningDisplay !== 'korean-only') {
+      meaningData.definition = firstDefinition.definition || '';
+    }
+
+    // meaningDisplay 옵션에 따라 한영 뜻 포함 여부 결정
+    // 주의: Free Dictionary API는 한국어 번역을 제공하지 않음
+    // Lingua Robot API를 사용해야 함
+    if (options.meaningDisplay !== 'english-only') {
+      meaningData.meaning = ''; // Lingua Robot API에서 제공
+    }
+
+    meaningData.synonyms = extractArray(firstDefinition.synonyms, options.synonyms);
+    meaningData.antonyms = extractArray(firstDefinition.antonyms, options.antonyms);
+    meaningData.related = []; // Free Dictionary API는 관계어를 직접 제공하지 않음
 
     result.meanings.push(meaningData);
   }

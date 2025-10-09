@@ -53,3 +53,7 @@ Thumbs.db
 
 # Local configuration
 .eslintcache
+
+# Claude Code
+# .claude/ directory is tracked (contains commands and docs)
+# Add any personal/local Claude Code files here if needed

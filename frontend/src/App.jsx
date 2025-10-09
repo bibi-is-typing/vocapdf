@@ -18,6 +18,8 @@ function App() {
     synonyms: 2,
     antonyms: 0,
     related: 0,
+    meaningDisplay: 'english-only', // 'english-only', 'korean-only', 'both'
+    outputFormat: 'unified', // 'unified', 'categorized'
     showCheckbox: false,
     showDate: false
   });
@@ -227,6 +229,33 @@ function App() {
                 <option value={0}>표시 안함</option>
                 <option value={1}>1개</option>
                 <option value={2}>2개</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="option-group">
+            <label>
+              의미 표시:
+              <select
+                value={options.meaningDisplay}
+                onChange={(e) => setOptions({ ...options, meaningDisplay: e.target.value })}
+              >
+                <option value="english-only">영영 뜻만</option>
+                <option value="korean-only">한영 뜻만</option>
+                <option value="both">영영+한영</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="option-group">
+            <label>
+              출력 형식:
+              <select
+                value={options.outputFormat}
+                onChange={(e) => setOptions({ ...options, outputFormat: e.target.value })}
+              >
+                <option value="unified">통합 형식</option>
+                <option value="categorized">분류 형식</option>
               </select>
             </label>
           </div>
