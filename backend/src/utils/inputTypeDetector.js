@@ -5,28 +5,12 @@
  */
 
 /**
- * 한글이 포함되어 있는지 확인
- *
- * @param {string} input - 확인할 텍스트
- * @returns {boolean} 한글 포함 여부
- */
-function containsKorean(input) {
-  // 한글 유니코드 범위: AC00-D7AF (완성형 한글)
-  const koreanRegex = /[\uAC00-\uD7AF]/;
-  return koreanRegex.test(input);
-}
-
-/**
  * 입력 텍스트의 유형을 감지합니다
  *
  * @param {string} input - 감지할 입력 텍스트
- * @returns {'word'|'phrase'|'sentence'|'korean'} 입력 유형
+ * @returns {'word'|'phrase'|'sentence'} 입력 유형
  */
 function detectInputType(input) {
-  // 한글 감지
-  if (containsKorean(input)) {
-    return 'korean';
-  }
   const trimmed = input.trim();
   const wordCount = trimmed.split(/\s+/).length;
 
@@ -70,7 +54,6 @@ function categorizeInputs(inputs) {
     words: [],
     phrases: [],
     sentences: [],
-    korean: [],
     allItems: [] // 순서를 유지하는 전체 항목 배열
   };
 
@@ -107,8 +90,6 @@ function categorizeInputs(inputs) {
       categorized.phrases.push(item);
     } else if (type === 'sentence') {
       categorized.sentences.push(item);
-    } else if (type === 'korean') {
-      categorized.korean.push(item);
     }
 
     // 전체 항목 배열에 추가 (순서 유지)
@@ -126,17 +107,15 @@ function categorizeInputs(inputs) {
  */
 function getTypeStats(categorized) {
   return {
-    total: categorized.words.length + categorized.phrases.length + categorized.sentences.length + (categorized.korean?.length || 0),
+    total: categorized.words.length + categorized.phrases.length + categorized.sentences.length,
     words: categorized.words.length,
     phrases: categorized.phrases.length,
-    sentences: categorized.sentences.length,
-    korean: categorized.korean?.length || 0
+    sentences: categorized.sentences.length
   };
 }
 
 module.exports = {
   detectInputType,
   categorizeInputs,
-  getTypeStats,
-  containsKorean
+  getTypeStats
 };

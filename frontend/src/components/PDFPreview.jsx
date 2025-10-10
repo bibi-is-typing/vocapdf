@@ -1,5 +1,5 @@
-import { useMemo, useState, useEffect } from 'react';
 import { useEffect, useMemo, useState } from 'react';
+import { Button } from './ui/button';
 import './PDFPreview.css';
 
 /**
@@ -18,7 +18,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   if (!wordData || wordData.length === 0) {
     return (
       <div className="preview-empty">
-        <p>단어를 찾으면 미리 보기가 나타나요</p>
+        <p className="text-xs sm:text-base">단어를 검색하면 미리보기가 나타나요</p>
       </div>
     );
   }
@@ -176,7 +176,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
               {item.word || item.original}
             </td>
             {options.layoutType === 'memorization' ? (
-              <td className="preview-cell cell-blank">________________</td>
+              <td className="preview-cell cell-blank"></td>
             ) : (
               <td className={`preview-cell cell-translation ${translationFontClass}`}>
                 {examplesContent.length > 0 ? examplesContent : '-'}
@@ -208,7 +208,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
               {item.word} → {item.englishWord || item.meanings?.[0]?.meaning || ''}
             </td>
             {options.layoutType === 'memorization' ? (
-              <td className="preview-cell cell-blank">________________</td>
+              <td className="preview-cell cell-blank"></td>
             ) : (
               <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
                 {item.englishWord || item.meanings?.[0]?.meaning || '-'}
@@ -248,7 +248,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           )}
           <td className={`preview-cell cell-word ${wordFontClass}`}>{item.word}</td>
           {options.layoutType === 'memorization' ? (
-            <td className="preview-cell cell-blank">________________</td>
+            <td className="preview-cell cell-blank"></td>
           ) : (
             <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
               {meaning.definition || '-'}
@@ -316,7 +316,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           )}
           <td className={`preview-cell cell-sentence ${sentenceFontClass}`}>{item.word || item.original}</td>
           {options.layoutType === 'memorization' ? (
-            <td className="preview-cell cell-blank">________________</td>
+            <td className="preview-cell cell-blank"></td>
           ) : (
             <td className={`preview-cell cell-translation ${translationFontClass}`}>
               {examplesContent.length > 0 ? examplesContent : '-'}
@@ -356,7 +356,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           )}
           <td className={`preview-cell cell-word ${wordFontClass}`}>{item.word}</td>
           {options.layoutType === 'memorization' ? (
-            <td className="preview-cell cell-blank">________________</td>
+            <td className="preview-cell cell-blank"></td>
           ) : (
             <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
               {item.englishWord || item.meanings?.[0]?.meaning || '-'}
@@ -389,35 +389,41 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   return (
     <div className="pdf-preview-container">
       {/* 페이지 네비게이션 및 PDF 생성 버튼 */}
-      <div className="preview-navigation">
-        <div className="nav-controls">
-          <button
-            className="nav-button"
+      <div className="flex flex-col gap-3 rounded-lg border border-border/70 bg-secondary/30 p-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:p-4">
+        <div className="flex items-center justify-center gap-3 sm:gap-4">
+          <Button
             onClick={handlePrevPage}
             disabled={currentPage === 0}
+            variant="outline"
+            size="sm"
+            className="text-xs transition-all hover:shadow-md active:scale-95 sm:text-sm disabled:active:scale-100"
             aria-label="이전 페이지"
           >
             ◀ 이전
-          </button>
-          <span className="page-indicator">
+          </Button>
+          <span className="min-w-[100px] text-center text-xs font-semibold text-foreground sm:min-w-[150px] sm:text-sm">
             페이지 {currentPage + 1} / {totalPages}
           </span>
-          <button
-            className="nav-button"
+          <Button
             onClick={handleNextPage}
             disabled={currentPage >= totalPages - 1}
+            variant="outline"
+            size="sm"
+            className="text-xs transition-all hover:shadow-md active:scale-95 sm:text-sm disabled:active:scale-100"
             aria-label="다음 페이지"
           >
             다음 ▶
-          </button>
+          </Button>
         </div>
-        <button
-          className="btn-generate-pdf"
+        <Button
           onClick={onGeneratePDF}
+          variant="outline"
+          size="lg"
+          className="text-xs transition-all hover:shadow-lg active:scale-95 sm:text-sm"
           aria-label="PDF 다운로드"
         >
-          📥 PDF로 저장
-        </button>
+          📥 PDF 다운로드
+        </Button>
       </div>
 
       {/* 현재 페이지만 표시 */}

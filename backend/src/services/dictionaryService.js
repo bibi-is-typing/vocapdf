@@ -1,9 +1,9 @@
 const axios = require('axios');
-const { DICTIONARY_API_URL, API_TIMEOUT, MAX_RETRIES, RETRY_DELAY, LINGUA_ROBOT_API_KEY, ANTHROPIC_API_KEY, OXFORD_APP_ID, OXFORD_APP_KEY } = require('../config/constants');
+const { DICTIONARY_API_URL, API_TIMEOUT, MAX_RETRIES, RETRY_DELAY, LINGUA_ROBOT_API_KEY, GEMINI_API_KEY, OXFORD_APP_ID, OXFORD_APP_KEY } = require('../config/constants');
 const { extractMeanings, extractMeaningsFromClaude, extractMeaningsFromOxford, validateApiResponse } = require('../utils/meaningExtractor');
 const { categorizeInputs, getTypeStats } = require('../utils/inputTypeDetector');
 const { fetchFromLinguaRobotWithRetry, transformLinguaRobotResponse } = require('./linguaRobotService');
-const { fetchFromClaudeWithRetry, transformClaudeResponse, translateKoreanToEnglishWithRetry } = require('./claudeService');
+const { fetchFromGeminiWithRetry, transformGeminiResponse } = require('./geminiService');
 const { fetchFromOxfordWithRetry, transformOxfordResponse } = require('./oxfordDictionaryService');
 const { AppError } = require('../middleware/errorHandler');
 
@@ -83,61 +83,8 @@ async function fetchSingleItem(item, options) {
   console.log(`\n[${item.original}] 조회 시작 (타입: ${item.type}, 순서: ${item.inputIndex})`);
 
   try {
-    // 🇰🇷 한글 입력: Claude API로 번역
-    if (item.type === 'korean') {
-      if (!ANTHROPIC_API_KEY) {
-        console.error(`  [${item.original}] ❌ Claude API key가 없어 한글 번역 불가`);
-        return {
-          word: item.original,
-          type: item.type,
-          error: '한글 번역에는 Claude API가 필요합니다',
-          meanings: [],
-          source: 'none',
-          success: false,
-          inputIndex: item.inputIndex
-        };
-      }
-
-      try {
-        console.log(`  [${item.original}] 🤖 Claude API로 한글→영어 번역 시도 중...`);
-        const translationData = await translateKoreanToEnglishWithRetry(item.original);
-
-        if (translationData) {
-          console.log(`  [${item.original}] ✅ 번역 성공: ${translationData.english}`);
-          return {
-            word: translationData.korean,
-            englishWord: translationData.english,
-            phonetic: translationData.phonetic || '',
-            type: item.type,
-            meanings: [
-              {
-                partOfSpeech: '',
-                meaning: translationData.english,
-                definition: translationData.definition || '',
-                example: translationData.example || ''
-              }
-            ],
-            source: 'claude-api',
-            success: true,
-            inputIndex: item.inputIndex
-          };
-        }
-      } catch (translationError) {
-        console.warn(`  [${item.original}] ⚠️ 번역 실패:`, translationError.message);
-        return {
-          word: item.original,
-          type: item.type,
-          error: '번역에 실패했습니다',
-          meanings: [],
-          source: 'error',
-          success: false,
-          inputIndex: item.inputIndex
-        };
-      }
-    }
-
     // 🎯 Priority 1: Free Dictionary API (무료, 단어/숙어만 가능)
-    if (item.type !== 'sentence' && item.type !== 'korean') {
+    if (item.type !== 'sentence') {
       try {
         console.log(`  [${item.original}] 📖 Free Dictionary API 시도 중...`);
         const apiData = await fetchWordWithRetry(item.normalized);
@@ -162,7 +109,7 @@ async function fetchSingleItem(item, options) {
 
     // 🎯 Priority 2: Oxford Dictionaries API (CEFR 레벨별 정의)
     // meaningDisplay가 english 또는 both일 때만 Oxford API 사용 (영영뜻 제공)
-    if (item.type !== 'sentence' && item.type !== 'korean' &&
+    if (item.type !== 'sentence' &&
         (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') &&
         (OXFORD_APP_ID && OXFORD_APP_KEY)) {
       try {
@@ -186,41 +133,41 @@ async function fetchSingleItem(item, options) {
       }
     }
 
-    // 🔄 Fallback: Claude API (비용 발생, 모든 타입 지원, CEFR 레벨 지원)
-    // meaningDisplay가 korean일 때도 Claude API를 사용 (한국어 번역 제공)
-    if (ANTHROPIC_API_KEY) {
+    // 🔄 Fallback: Gemini API (무료, 모든 타입 지원, CEFR 레벨 지원)
+    // meaningDisplay가 korean일 때도 Gemini API를 사용 (한국어 번역 제공)
+    if (GEMINI_API_KEY) {
       try {
-        console.log(`  [${item.original}] 🤖 Claude API 시도 중... (CEFR: ${options.cefrLevel})`);
-        const claudeData = await fetchFromClaudeWithRetry(item.normalized, item.type, options);
+        console.log(`  [${item.original}] 🤖 Gemini API 시도 중... (CEFR: ${options.cefrLevel})`);
+        const geminiData = await fetchFromGeminiWithRetry(item.normalized, item.type, options);
 
-        if (claudeData) {
-          // Claude API 성공
+        if (geminiData) {
+          // Gemini API 성공
           if (item.type === 'sentence') {
             // 문장 활용 예시
-            console.log(`  [${item.original}] ✅ Claude API 성공 (문장 활용 예시)`);
+            console.log(`  [${item.original}] ✅ Gemini API 성공 (문장 활용 예시)`);
             return {
               word: item.original,
               type: item.type,
-              examples: claudeData.examples || [],
-              similarExpressions: claudeData.similarExpressions || [],
-              original: claudeData.original,
-              source: 'claude-api',
+              examples: geminiData.examples || [],
+              similarExpressions: geminiData.similarExpressions || [],
+              original: geminiData.original,
+              source: 'gemini-api',
               success: true,
               inputIndex: item.inputIndex
             };
           } else {
             // 단어/숙어
-            const extracted = extractMeaningsFromClaude(claudeData, options);
+            const extracted = extractMeaningsFromClaude(geminiData, options);
             extracted.type = item.type;
-            extracted.source = 'claude-api';
+            extracted.source = 'gemini-api';
             extracted.success = true;
             extracted.inputIndex = item.inputIndex;
-            console.log(`  [${item.original}] ✅ Claude API 성공 (단어/숙어)`);
+            console.log(`  [${item.original}] ✅ Gemini API 성공 (단어/숙어)`);
             return extracted;
           }
         }
-      } catch (claudeError) {
-        console.warn(`  [${item.original}] ⚠️ Claude API 에러:`, claudeError.message);
+      } catch (geminiError) {
+        console.warn(`  [${item.original}] ⚠️ Gemini API 에러:`, geminiError.message);
       }
     }
 
@@ -283,7 +230,6 @@ async function lookupWords(inputs, options, onProgress) {
   console.log('  - 단어:', categorized.words.map(w => w.original));
   console.log('  - 숙어:', categorized.phrases.map(p => p.original));
   console.log('  - 문장:', categorized.sentences.map(s => s.original));
-  console.log('  - 한글:', categorized.korean?.map(k => k.original) || []);
   console.log('📊 [dictionaryService] 타입별 통계:', typeStats);
 
   const results = [];

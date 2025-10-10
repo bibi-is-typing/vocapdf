@@ -138,8 +138,8 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.layoutType === 'memorization') {
         // 암기용: 빈칸
         row.push({
-          content: '________________',
-          styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+          content: ' ',
+          styles: { halign: 'center', valign: 'middle' }
         });
       } else {
         // 학습용: 활용 예시 표시
@@ -189,8 +189,8 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.layoutType === 'memorization') {
         // 암기용: 빈칸
         row.push({
-          content: '________________',
-          styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+          content: ' ',
+          styles: { halign: 'center', valign: 'middle' }
         });
       } else {
         // 학습용: 의미 표시
@@ -242,8 +242,8 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
     if (options.layoutType === 'memorization') {
       // 암기용: 빈칸
       row.push({
-        content: '________________',
-        styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+        content: ' ',
+        styles: { halign: 'center', valign: 'middle' }
       });
     } else {
       // 학습용: 의미 표시
@@ -535,8 +535,8 @@ function createTableForCategory(doc, data, options, startY, marginLeft, marginRi
     if (options.layoutType === 'memorization') {
       // 암기용: 빈칸
       row.push({
-        content: '________________',
-        styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+        content: ' ',
+        styles: { halign: 'center', valign: 'middle' }
       });
     } else {
       // 학습용: 의미 표시
@@ -738,7 +738,10 @@ function createSentenceTable(doc, sentences, options, startY, marginLeft, margin
 
     // 레이아웃 타입에 따른 예시 표시
     if (options.layoutType === 'memorization') {
-      row.push('________________');
+      row.push({
+        content: ' ',
+        styles: { halign: 'center', valign: 'middle' }
+      });
     } else {
       // 학습용: 활용 예시 표시
       let examplesText = '';
@@ -933,7 +936,10 @@ function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight
 
     // 레이아웃 타입에 따른 표시
     if (options.layoutType === 'memorization') {
-      row.push('________________');
+      row.push({
+        content: ' ',
+        styles: { halign: 'center', valign: 'middle' }
+      });
     } else {
       // 학습용: 영어 단어 + 정의를 하나의 컬럼에 표시
       const englishWord = item.englishWord || item.meanings?.[0]?.meaning || '-';

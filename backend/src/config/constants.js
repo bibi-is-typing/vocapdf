@@ -13,8 +13,8 @@ module.exports = {
   LINGUA_ROBOT_API_KEY: process.env.LINGUA_ROBOT_API_KEY || '',
   LINGUA_ROBOT_API_HOST: process.env.LINGUA_ROBOT_API_HOST || 'lingua-robot.p.rapidapi.com',
 
-  // Anthropic Claude API (fallback for Free Dictionary API)
-  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+  // Google Gemini API (fallback for Free Dictionary API)
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
 
   // Oxford Dictionaries API (CEFR level-based definitions)
   OXFORD_APP_ID: process.env.OXFORD_APP_ID || '',

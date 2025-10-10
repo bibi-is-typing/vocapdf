@@ -87,14 +87,18 @@
 .pdf-preview-wrapper {
   width: 100%;
   max-height: none;
-  overflow: visible;
-  background: #525659;
+  overflow-x: auto;
+  overflow-y: visible;
+  background: hsl(var(--muted));
   padding: 20px;
-  border-radius: 8px;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+  border-radius: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
   position: relative;
   display: flex;
   justify-content: center;
+  /* 모바일에서 스크롤 가능하도록 */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* A4 페이지 시뮬레이션 */
@@ -108,6 +112,8 @@
   position: relative;
   font-family: Helvetica, Arial, sans-serif;
   overflow: visible;
+  /* 모바일에서는 최소 너비 유지 */
+  min-width: 280px;
 }
 
 /* 빈 상태 */
@@ -115,15 +121,16 @@
   width: 100%;
   padding: 3rem;
   text-align: center;
-  color: #999;
-  background: #f5f5f5;
-  border-radius: 8px;
-  border: 2px dashed #ddd;
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 0.75rem;
+  border: 2px dashed hsl(var(--border));
 }
 
 .preview-empty p {
   margin: 0;
   font-size: 1.1rem;
+  color: hsl(var(--muted-foreground));
 }
 
 /* 헤더 (날짜) */
@@ -150,11 +157,11 @@
 
 .preview-section-title {
   font-size: 14pt;
-  font-weight: 600;
-  color: #000;
+  font-weight: 700;
+  color: hsl(var(--primary));
   margin: 0 0 5mm 0;
   padding-bottom: 2mm;
-  border-bottom: 2px solid #333;
+  border-bottom: 2px solid hsl(var(--primary));
 }
 
 /* 테이블 스타일 */
@@ -168,16 +175,16 @@
 
 /* 테이블 헤더 */
 .preview-header-row {
-  background-color: #2c3e50;
+  background-color: hsl(var(--primary));
 }
 
 .preview-header-cell {
-  color: white;
-  font-weight: normal;
+  color: hsl(var(--primary-foreground));
+  font-weight: 600;
   font-size: 10pt;
   text-align: center;
   padding: 2mm;
-  border: 1px solid #2c3e50;
+  border: 1px solid hsl(var(--primary));
   vertical-align: middle;
   height: 12mm;
   min-height: 12mm;
@@ -292,9 +299,15 @@
 /* 빈칸 셀 (암기용) */
 .cell-blank {
   text-align: center;
-  color: #ccc;
+  color: transparent;
   font-size: 10pt;
   width: 60%;
+  /* 빈칸 표시 - 텍스트나 밑줄 없음 */
+}
+
+.cell-blank::before,
+.cell-blank::after {
+  content: none;
 }
 
 /* 동적 폰트 크기 조정 (PDF와 동일) */
@@ -334,6 +347,25 @@
   color: #666;
 }
 
+/* 스크롤바 스타일 */
+.pdf-preview-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.pdf-preview-wrapper::-webkit-scrollbar-track {
+  background: hsl(var(--muted));
+  border-radius: 4px;
+}
+
+.pdf-preview-wrapper::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary) / 0.3);
+  border-radius: 4px;
+}
+
+.pdf-preview-wrapper::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5);
+}
+
 /* 페이지 내 스크롤바 스타일 */
 .pdf-preview-page::-webkit-scrollbar {
   width: 8px;
@@ -353,52 +385,49 @@
   background: #555;
 }
 
-/* 반응형: 작은 화면에서는 스케일 조정 */
+/* 반응형: 작은 화면에서는 자연스러운 스크롤 */
 @media (max-width: 1024px) {
-  .pdf-preview-page {
-    transform: scale(0.7);
-    transform-origin: top left;
-  }
-
   .pdf-preview-wrapper {
-    height: 600px;
+    padding: 15px;
+    /* 가로 스크롤 힌트 */
+    background: linear-gradient(90deg,
+      hsl(var(--muted)) 0%,
+      transparent 5%,
+      transparent 95%,
+      hsl(var(--muted)) 100%);
   }
 
-  .nav-button {
-    padding: 0.4rem 1rem;
-    font-size: 0.9rem;
-  }
-
-  .page-indicator {
-    font-size: 0.9rem;
-    min-width: 120px;
+  .pdf-preview-page {
+    /* 스케일 제거 - 원본 크기 유지하되 스크롤 가능 */
+    transform: none;
   }
 }
 
 @media (max-width: 768px) {
-  .pdf-preview-page {
-    transform: scale(0.5);
-    transform-origin: top left;
-  }
-
   .pdf-preview-wrapper {
     padding: 10px;
-    height: 500px;
+    border-radius: 0.5rem;
   }
 
-  .preview-navigation {
-    padding: 0.75rem;
-    gap: 1rem;
+  .pdf-preview-page {
+    /* 모바일에서는 너비를 약간 줄여서 보기 편하게 */
+    width: max(280px, 90vw);
+    padding: 15mm 10mm;
   }
 
-  .nav-button {
-    padding: 0.3rem 0.8rem;
-    font-size: 0.85rem;
+  /* 테이블 폰트 크기 조정 */
+  .preview-table {
+    font-size: 9pt;
   }
 
-  .page-indicator {
-    font-size: 0.85rem;
-    min-width: 100px;
+  .preview-header-cell {
+    font-size: 8pt;
+    padding: 1.5mm;
+  }
+
+  .preview-cell {
+    padding: 1.5mm;
+    font-size: 8pt;
   }
 }
 
