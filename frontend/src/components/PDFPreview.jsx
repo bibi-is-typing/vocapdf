@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import './PDFPreview.css';
 
 /**
@@ -31,7 +32,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     return filtered;
   }, [wordData]);
 
-  // outputFormat에 따라 데이터 분류
+  // outputFormat에 따라 데이터 ���류
   const organizedData = useMemo(() => {
     if (options.outputFormat === 'grouped') {
       return {
@@ -103,7 +104,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     // mm를 픽셀로 변환 (1mm ≈ 3.78px at 96 DPI)
     const cellWidthPx = cellWidthMm * 3.78;
 
-    // cellPadding (2mm * 2) 제외
+    // cellPadding (2mm * 2) ��외
     const availableWidth = cellWidthPx - (2 * 3.78 * 2);
 
     // 텍스트 너비 측정 (10pt 폰트 기준)
@@ -265,7 +266,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
 
   // 문장 테이블 행 생성
   const renderSentenceRows = (sentences, startNumber = 1) => {
-    // 컬럼 너비 계산 (PDF와 동일)
+    // 컬럼 너비 계산 (PDF�� 동일)
     const pageWidth = 210;
     const marginLeft = 15, marginRight = 15;
     const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
