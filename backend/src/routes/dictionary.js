@@ -29,42 +29,25 @@ router.post('/lookup', async (req, res, next) => {
       throw new AppError('options 객체가 필요합니다', 400, 'INVALID_REQUEST');
     }
 
-    // options 필드 검증
-    const requiredFields = ['meanings', 'definitions', 'synonyms', 'antonyms', 'related'];
-    for (const field of requiredFields) {
-      if (typeof options[field] !== 'number') {
-        throw new AppError(
-          `options.${field}는 숫자여야 합니다`,
-          400,
-          'INVALID_REQUEST'
-        );
-      }
-    }
+    // 옵션 기본값 설정 (유연한 처리)
+    const normalizedOptions = {
+      meanings: options.meanings || 1,
+      definitions: options.definitions || 1,
+      synonyms: options.synonyms || 0,
+      antonyms: options.antonyms || 0,
+      related: options.related || 0,
+      meaningDisplay: options.meaningDisplay || 'english',
+      outputFormat: options.outputFormat || 'input-order',
+      cefrLevel: options.cefrLevel || 'A2' // CEFR 레벨 추가
+    };
 
-    // options 값 범위 검증
-    if (options.meanings < 1 || options.meanings > 2) {
-      throw new AppError('meanings는 1 또는 2여야 합니다', 422, 'VALIDATION_ERROR');
-    }
-
-    if (
-      options.definitions < 0 ||
-      options.definitions > 2 ||
-      options.synonyms < 0 ||
-      options.synonyms > 2 ||
-      options.antonyms < 0 ||
-      options.antonyms > 2 ||
-      options.related < 0 ||
-      options.related > 2
-    ) {
-      throw new AppError(
-        'definitions, synonyms, antonyms, related는 0, 1, 또는 2여야 합니다',
-        422,
-        'VALIDATION_ERROR'
-      );
+    // meanings 값 검증
+    if (normalizedOptions.meanings < 1 || normalizedOptions.meanings > 2) {
+      normalizedOptions.meanings = 1; // 기본값으로 설정
     }
 
     // 단어 조회 및 가공
-    const result = await dictionaryService.lookupWords(words, options);
+    const result = await dictionaryService.lookupWords(words, normalizedOptions);
 
     res.json(result);
   } catch (error) {

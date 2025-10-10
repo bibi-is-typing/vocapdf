@@ -13,6 +13,13 @@ module.exports = {
   LINGUA_ROBOT_API_KEY: process.env.LINGUA_ROBOT_API_KEY || '',
   LINGUA_ROBOT_API_HOST: process.env.LINGUA_ROBOT_API_HOST || 'lingua-robot.p.rapidapi.com',
 
+  // Anthropic Claude API (fallback for Free Dictionary API)
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY || '',
+
+  // Oxford Dictionaries API (CEFR level-based definitions)
+  OXFORD_APP_ID: process.env.OXFORD_APP_ID || '',
+  OXFORD_APP_KEY: process.env.OXFORD_APP_KEY || '',
+
   API_TIMEOUT: 10000, // 10초
   MAX_RETRIES: 2,
   RETRY_DELAY: 500 // 500ms

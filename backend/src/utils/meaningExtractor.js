@@ -44,14 +44,14 @@ function extractMeanings(apiData, options) {
     };
 
     // meaningDisplay 옵션에 따라 영영뜻 포함 여부 결정
-    if (options.meaningDisplay !== 'korean-only') {
+    if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
       meaningData.definition = firstDefinition.definition || '';
     }
 
     // meaningDisplay 옵션에 따라 한영 뜻 포함 여부 결정
     // 주의: Free Dictionary API는 한국어 번역을 제공하지 않음
     // Lingua Robot API를 사용해야 함
-    if (options.meaningDisplay !== 'english-only') {
+    if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
       meaningData.meaning = ''; // Lingua Robot API에서 제공
     }
 
@@ -129,8 +129,104 @@ function validateApiResponse(data) {
   return true;
 }
 
+/**
+ * Claude API 응답을 Free Dictionary 형식으로 변환 및 의미 추출
+ *
+ * @param {Object} claudeData - Claude API 응답 데이터
+ * @param {Object} options - 사용자 선택 옵션
+ * @returns {Object} 가공된 단어 데이터
+ */
+function extractMeaningsFromClaude(claudeData, options) {
+  const result = {
+    word: claudeData.word || '',
+    meanings: []
+  };
+
+  const allMeanings = claudeData.meanings || [];
+  const meaningsCount = Math.min(options.meanings, allMeanings.length);
+
+  for (let i = 0; i < meaningsCount; i++) {
+    const meaning = allMeanings[i];
+    const definitions = meaning.definitions || [];
+    const firstDefinition = definitions[0] || {};
+
+    const meaningData = {
+      meaningNumber: i + 1,
+      partOfSpeech: meaning.partOfSpeech || ''
+    };
+
+    // meaningDisplay 옵션에 따라 영영뜻 포함
+    if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
+      meaningData.definition = firstDefinition.definition || '';
+    }
+
+    // Claude API는 한국어 번역 제공
+    if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
+      meaningData.meaning = claudeData.koreanMeaning || '';
+    }
+
+    meaningData.synonyms = extractArray(meaning.synonyms, options.synonyms);
+    meaningData.antonyms = extractArray(meaning.antonyms, options.antonyms);
+    meaningData.related = []; // Claude API는 관계어 미제공
+
+    result.meanings.push(meaningData);
+  }
+
+  return result;
+}
+
+/**
+ * Oxford API 응답을 공통 형식으로 변환 및 의미 추출
+ *
+ * @param {Object} oxfordData - transformOxfordResponse의 결과
+ * @param {Object} options - 사용자 선택 옵션
+ * @returns {Object} 가공된 단어 데이터
+ */
+function extractMeaningsFromOxford(oxfordData, options) {
+  const result = {
+    word: oxfordData.word || '',
+    phonetic: oxfordData.phonetic || '',
+    meanings: []
+  };
+
+  const allMeanings = oxfordData.meanings || [];
+  const meaningsCount = Math.min(options.meanings, allMeanings.length);
+
+  for (let i = 0; i < meaningsCount; i++) {
+    const meaning = allMeanings[i];
+    const definitions = meaning.definitions || [];
+    const firstDefinition = definitions[0] || {};
+
+    const meaningData = {
+      meaningNumber: i + 1,
+      partOfSpeech: meaning.partOfSpeech || ''
+    };
+
+    // meaningDisplay 옵션에 따라 영영뜻 포함
+    if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
+      meaningData.definition = firstDefinition.definition || '';
+      meaningData.example = firstDefinition.example || '';
+    }
+
+    // Oxford API는 한국어 번역 미제공
+    if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
+      meaningData.meaning = ''; // 한국어 번역 없음
+    }
+
+    meaningData.synonyms = extractArray(meaning.synonyms, options.synonyms || 0);
+    meaningData.antonyms = extractArray(meaning.antonyms, options.antonyms || 0);
+    meaningData.related = []; // Oxford API는 관계어 미제공
+
+    result.meanings.push(meaningData);
+  }
+
+  return result;
+}
+
 module.exports = {
   extractMeanings,
+  extractMeaningsFromClaude,
+  extractMeaningsFromOxford,
   extractArray,
   collectFromDefinitions,
   validateApiResponse

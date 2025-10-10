@@ -1,0 +1,439 @@
+const Anthropic = require('@anthropic-ai/sdk');
+const { ANTHROPIC_API_KEY, API_TIMEOUT } = require('../config/constants');
+
+/**
+ * Claude API 클라이언트 초기화
+ */
+let anthropic = null;
+
+function getAnthropicClient() {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('Anthropic API key is not configured');
+  }
+
+  if (!anthropic) {
+    anthropic = new Anthropic({
+      apiKey: ANTHROPIC_API_KEY,
+    });
+  }
+
+  return anthropic;
+}
+
+/**
+ * Claude API로 단어/숙어 정의 조회
+ *
+ * @param {string} input - 조회할 단어/숙어
+ * @param {string} type - 입력 유형 ('word', 'phrase', 'sentence')
+ * @param {Object} options - 사용자 옵션
+ * @returns {Promise<Object>} 표준화된 사전 데이터
+ */
+async function fetchFromClaude(input, type, options = {}) {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('Anthropic API key is not configured');
+  }
+
+  try {
+    const client = getAnthropicClient();
+
+    // CEFR 레벨에 맞는 설명 지시사항
+    const cefrInstructions = {
+      A2: 'Use very basic vocabulary (A2 level). Explain with simple, everyday words that elementary learners understand. Keep sentences short (5-10 words).',
+      B1: 'Use common vocabulary (B1 level). Explain with clear, everyday language that intermediate learners use. Use moderate sentence length (10-15 words).',
+      B2: 'Use varied vocabulary (B2 level). Provide detailed explanations with a wider range of words. Use natural, fluent expressions.',
+      C1: 'Use sophisticated vocabulary (C1 level). Give precise, academic definitions with advanced terminology and complex structures.'
+    };
+
+    const cefrLevel = options.cefrLevel || 'B1';
+    const cefrInstruction = cefrInstructions[cefrLevel] || cefrInstructions.B1;
+
+    // 타입에 따라 다른 프롬프트 생성
+    let prompt;
+
+    if (type === 'sentence') {
+      // 문장 활용 예시 및 비슷한 표현
+      prompt = `You are an English learning assistant. For the following English sentence, provide ONLY the most commonly used similar expression.
+
+Sentence: "${input}"
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
+{
+  "original": "${input}",
+  "examples": [],
+  "similarExpressions": [
+    "The MOST commonly used similar expression"
+  ]
+}
+
+CRITICAL REQUIREMENTS:
+- Provide ONLY 1 similar expression (no usage examples)
+- The similar expression must be SHORT, SIMPLE, and PRACTICAL
+- Use everyday conversational English (5-10 words maximum)
+- Examples:
+  * "May I speak to you in private?" → "Can we talk privately?"
+  * "How are you doing?" → "How's it going?"
+  * "I appreciate your help" → "Thanks for your help"
+- Make sure all expressions are in English only
+- DO NOT include long explanations or context`;
+    } else if (type === 'phrase') {
+      // 숙어
+      prompt = `You are a dictionary API for English learners at CEFR ${cefrLevel} level. ${cefrInstruction}
+
+Provide the definition and meaning of the following English idiom/phrase in JSON format.
+
+Idiom: "${input}"
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
+{
+  "word": "${input}",
+  "phonetic": "pronunciation if available",
+  "meanings": [
+    {
+      "partOfSpeech": "idiom",
+      "definitions": [
+        {
+          "definition": "English definition of the idiom",
+          "example": "Example sentence using the idiom"
+        }
+      ],
+      "synonyms": ["synonym1", "synonym2"],
+      "antonyms": []
+    }
+  ],
+  "koreanMeaning": "Korean translation of the idiom"
+}
+
+If you don't know the idiom, return:
+{
+  "error": "Definition not found"
+}`;
+    } else {
+      // 단어
+      prompt = `You are a dictionary API for English learners at CEFR ${cefrLevel} level. ${cefrInstruction}
+
+Provide the definition of the following English word in JSON format.
+
+Word: "${input}"
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
+{
+  "word": "${input}",
+  "phonetic": "pronunciation",
+  "meanings": [
+    {
+      "partOfSpeech": "noun/verb/adjective/etc",
+      "definitions": [
+        {
+          "definition": "English definition",
+          "example": "Example sentence"
+        }
+      ],
+      "synonyms": ["synonym1", "synonym2"],
+      "antonyms": ["antonym1", "antonym2"]
+    }
+  ],
+  "koreanMeaning": "Korean translation"
+}
+
+Provide ${options.meanings || 2} meanings if available. If you don't know the word, return:
+{
+  "error": "Definition not found"
+}`;
+    }
+
+    // Claude API 호출
+    const response = await client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1024,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    // 응답 파싱
+    const content = response.content[0].text.trim();
+
+    // 문장 예시의 경우
+    if (type === 'sentence') {
+      // JSON 응답 파싱
+      let jsonData;
+      try {
+        // 마크다운 코드 블록 제거 (```json ... ```)
+        const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        jsonData = JSON.parse(cleanedContent);
+      } catch (parseError) {
+        console.error('Claude API JSON parsing error for sentence:', parseError);
+        console.error('Raw content:', content);
+        // 파싱 실패 시 빈 배열 반환
+        return {
+          original: input,
+          examples: [],
+          similarExpressions: []
+        };
+      }
+
+      return {
+        original: jsonData.original || input,
+        examples: jsonData.examples || [],
+        similarExpressions: jsonData.similarExpressions || []
+      };
+    }
+
+    // JSON 응답 파싱 (단어/숙어)
+    let jsonData;
+    try {
+      // 마크다운 코드 블록 제거 (```json ... ```)
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      jsonData = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('Claude API JSON parsing error:', parseError);
+      console.error('Raw content:', content);
+      throw new Error('Failed to parse Claude API response');
+    }
+
+    // 에러 응답 체크
+    if (jsonData.error) {
+      return null;
+    }
+
+    return jsonData;
+
+  } catch (error) {
+    console.error(`Claude API error for "${input}":`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * Claude API 응답을 Free Dictionary API 형식으로 변환
+ *
+ * @param {Object} claudeData - Claude API 응답
+ * @param {string} type - 입력 유형
+ * @param {Object} options - 사용자 옵션
+ * @returns {Object} Free Dictionary API 형식의 데이터
+ */
+function transformClaudeResponse(claudeData, type, options) {
+  if (type === 'sentence') {
+    // 문장 활용 예시 응답
+    return {
+      original: claudeData.original || '',
+      examples: claudeData.examples || [],
+      similarExpressions: claudeData.similarExpressions || []
+    };
+  }
+
+  // 단어/숙어 사전 응답 변환
+  const transformed = {
+    word: claudeData.word || '',
+    phonetic: claudeData.phonetic || '',
+    meanings: []
+  };
+
+  if (claudeData.meanings && Array.isArray(claudeData.meanings)) {
+    // meanings 개수 제한
+    const limitedMeanings = claudeData.meanings.slice(0, options.meanings || 2);
+
+    limitedMeanings.forEach(meaning => {
+      const meaningObj = {
+        partOfSpeech: meaning.partOfSpeech || '',
+        definitions: []
+      };
+
+      // definitions 처리
+      if (meaning.definitions && Array.isArray(meaning.definitions)) {
+        const limitedDefs = meaning.definitions.slice(0, options.definitions || 1);
+        meaningObj.definitions = limitedDefs.map(def => ({
+          definition: def.definition || '',
+          example: def.example || ''
+        }));
+      }
+
+      // synonyms, antonyms 처리
+      if (meaning.synonyms && options.synonyms > 0) {
+        meaningObj.synonyms = meaning.synonyms.slice(0, options.synonyms);
+      } else {
+        meaningObj.synonyms = [];
+      }
+
+      if (meaning.antonyms && options.antonyms > 0) {
+        meaningObj.antonyms = meaning.antonyms.slice(0, options.antonyms);
+      } else {
+        meaningObj.antonyms = [];
+      }
+
+      transformed.meanings.push(meaningObj);
+    });
+  }
+
+  // 한국어 의미 추가 (별도 필드로 저장)
+  if (claudeData.koreanMeaning) {
+    transformed.koreanMeaning = claudeData.koreanMeaning;
+  }
+
+  return transformed;
+}
+
+/**
+ * 재시도 로직이 포함된 Claude API 호출
+ *
+ * @param {string} input - 조회할 입력
+ * @param {string} type - 입력 유형
+ * @param {Object} options - 사용자 옵션
+ * @returns {Promise<Object|null>} API 응답 데이터 또는 null
+ */
+async function fetchFromClaudeWithRetry(input, type, options) {
+  const MAX_RETRIES = 1; // Claude API는 비용이 들므로 재시도 1회로 제한
+  let lastError;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await fetchFromClaude(input, type, options);
+      return result;
+    } catch (error) {
+      lastError = error;
+
+      // API 키 오류는 재시도하지 않음
+      if (error.message.includes('API key')) {
+        throw error;
+      }
+
+      // 마지막 시도가 아니면 재시도
+      if (attempt < MAX_RETRIES) {
+        console.log(`Retrying Claude API for "${input}" (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+        await sleep(1000); // 1초 대기
+      }
+    }
+  }
+
+  // 모든 재시도 실패
+  console.error(`All Claude API retries failed for "${input}"`);
+  throw lastError;
+}
+
+/**
+ * 한글 단어를 영어로 번역
+ *
+ * @param {string} koreanWord - 번역할 한글 단어
+ * @returns {Promise<Object>} 번역 결과 { english, korean, definition }
+ */
+async function translateKoreanToEnglish(koreanWord) {
+  if (!ANTHROPIC_API_KEY) {
+    throw new Error('Anthropic API key is not configured');
+  }
+
+  try {
+    const client = getAnthropicClient();
+
+    const prompt = `You are a Korean-English translation assistant. Translate the following Korean word/phrase to English and provide a brief English definition.
+
+Korean: "${koreanWord}"
+
+Return ONLY a valid JSON object (no markdown, no explanation) with this exact structure:
+{
+  "korean": "${koreanWord}",
+  "english": "English translation",
+  "phonetic": "pronunciation if available",
+  "definition": "Brief English definition of the word",
+  "example": "Example sentence using the English word"
+}
+
+If you don't know the translation, return:
+{
+  "error": "Translation not found"
+}`;
+
+    // Claude API 호출
+    const response = await client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 512,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    });
+
+    // 응답 파싱
+    const content = response.content[0].text.trim();
+
+    // JSON 응답 파싱
+    let jsonData;
+    try {
+      // 마크다운 코드 블록 제거
+      const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      jsonData = JSON.parse(cleanedContent);
+    } catch (parseError) {
+      console.error('Claude API JSON parsing error:', parseError);
+      console.error('Raw content:', content);
+      throw new Error('Failed to parse Claude API response');
+    }
+
+    // 에러 응답 체크
+    if (jsonData.error) {
+      return null;
+    }
+
+    return jsonData;
+
+  } catch (error) {
+    console.error(`Claude API translation error for "${koreanWord}":`, error.message);
+    throw error;
+  }
+}
+
+/**
+ * 재시도 로직이 포함된 한글→영어 번역
+ *
+ * @param {string} koreanWord - 번역할 한글 단어
+ * @returns {Promise<Object|null>} 번역 결과 또는 null
+ */
+async function translateKoreanToEnglishWithRetry(koreanWord) {
+  const MAX_RETRIES = 1;
+  let lastError;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const result = await translateKoreanToEnglish(koreanWord);
+      return result;
+    } catch (error) {
+      lastError = error;
+
+      // API 키 오류는 재시도하지 않음
+      if (error.message.includes('API key')) {
+        throw error;
+      }
+
+      // 마지막 시도가 아니면 재시도
+      if (attempt < MAX_RETRIES) {
+        console.log(`Retrying translation for "${koreanWord}" (attempt ${attempt + 1}/${MAX_RETRIES})...`);
+        await sleep(1000);
+      }
+    }
+  }
+
+  // 모든 재시도 실패
+  console.error(`All translation retries failed for "${koreanWord}"`);
+  throw lastError;
+}
+
+/**
+ * 지연 함수
+ *
+ * @param {number} ms - 대기 시간 (밀리초)
+ * @returns {Promise}
+ */
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+module.exports = {
+  fetchFromClaude,
+  fetchFromClaudeWithRetry,
+  transformClaudeResponse,
+  translateKoreanToEnglish,
+  translateKoreanToEnglishWithRetry
+};

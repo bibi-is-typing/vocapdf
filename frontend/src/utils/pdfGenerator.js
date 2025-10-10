@@ -2,19 +2,28 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 /**
- * PDF 생성
+ * PDF 생성 (Helvetica 폰트 + 커스텀 체크박스)
  * @param {Array} wordData - 단어 데이터 배열
  * @param {Object} options - 옵션 설정
  */
 export const generatePDF = (wordData, options) => {
-  // 1. PDF 문서 생성
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4',
-    putOnlyUsedFonts: true,
-    compress: true
-  });
+  console.log('[pdfGenerator] 함수 시작');
+  console.log('[pdfGenerator] wordData:', wordData?.length, 'items');
+  console.log('[pdfGenerator] options:', options);
+
+  try {
+    // 1. PDF 문서 생성
+    console.log('[pdfGenerator] jsPDF 생성 중...');
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+      compress: true
+    });
+    console.log('[pdfGenerator] jsPDF 생성 완료');
+
+    // 2. 기본 폰트 설정 (helvetica)
+    doc.setFont('helvetica');
 
   const marginLeft = 15;
   const marginRight = 15;
@@ -22,52 +31,75 @@ export const generatePDF = (wordData, options) => {
   const marginBottom = 15;
   let startY = marginTop;
 
-  // 2. 날짜 표시 (옵션)
-  if (options.showDate) {
-    const today = new Date().toISOString().split('T')[0];
-    const dateStr = `학습일: ${today}`;
-    doc.setFontSize(12);
-    doc.setTextColor(0, 0, 0);
-    doc.text(dateStr, marginLeft, 15);
-    startY = 25;
+  // 체크박스 그리기 함수
+  const drawCheckbox = (doc, x, y, size = 3) => {
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.3);
+    doc.rect(x, y, size, size);
+  };
+
+  // 2. 날짜 표시 (YYYY-MM-DD 형식) - 상단 여백에 표시
+  if (options.customDate) {
+    const dateStr = `Study Date: ${options.customDate}`;
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(dateStr, marginLeft, 12);
+    // startY는 그대로 20mm 유지
   }
 
   // 3. 출력 형식에 따라 데이터 처리
-  if (options.outputFormat === 'categorized') {
+  if (options.outputFormat === 'grouped') {
     // 분류 형식: 단어/숙어/문장을 별도 섹션으로
-    generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop);
+    generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, drawCheckbox);
   } else {
-    // 통합 형식: 기존 방식
-    generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, marginBottom);
+    // 입력 순서 형식: 기존 방식
+    generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, marginBottom, drawCheckbox);
   }
 
   // 페이지 번호 추가
+  console.log('[pdfGenerator] 페이지 번호 추가 중...');
   addPageNumbers(doc);
+  console.log('[pdfGenerator] 페이지 번호 추가 완료');
 
   // 저장
   const filename = `vocapdf_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.pdf`;
+  console.log('[pdfGenerator] PDF 저장 시작:', filename);
   doc.save(filename);
+  console.log('[pdfGenerator] PDF 저장 완료');
+
+  return { success: true, filename };
+  } catch (error) {
+    console.error('[pdfGenerator] 에러 발생:', error);
+    console.error('[pdfGenerator] 에러 스택:', error.stack);
+    throw error;
+  }
 };
 
 /**
  * 통합 형식 PDF 생성
  */
-function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, marginBottom) {
+function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, marginBottom, drawCheckbox) {
 
-  // 3. 테이블 헤더 구성
+  // 3. 테이블 헤더 구성 (통일된 헤더)
   const headers = [];
-  if (options.showCheckbox) {
-    headers.push('☐');
-  }
-  headers.push('단어', '의미');
 
-  if (options.definitions > 0) headers.push('영영뜻');
-  if (options.synonyms > 0) headers.push('유의어');
-  if (options.antonyms > 0) headers.push('반의어');
-  if (options.related > 0) headers.push('관계어');
+  // 넘버링 옵션
+  if (options.includeNumbering) {
+    headers.push('No.');
+  }
+
+  // 체크박스 옵션
+  if (options.includeCheckbox) {
+    headers.push('');
+  }
+
+  // 모든 타입 통합 헤더
+  headers.push('Item');
+  headers.push('Meaning');
 
   // 4. 테이블 데이터 구성
   const tableBody = [];
+  let numberCounter = 1; // 통합 넘버링
 
   for (const item of wordData) {
     if (item.error) {
@@ -75,103 +107,312 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       continue;
     }
 
-    const meanings = item.meanings || [];
-
-    for (let i = 0; i < meanings.length; i++) {
-      const meaning = meanings[i];
+    // 문장 타입 처리
+    if (item.type === 'sentence') {
       const row = [];
 
-      // 체크박스
-      if (options.showCheckbox) {
-        if (i === 0) {
-          row.push({
-            content: '☐',
-            rowSpan: meanings.length,
-            styles: { halign: 'center', valign: 'middle' }
-          });
-        }
+      // 넘버링
+      if (options.includeNumbering) {
+        row.push({
+          content: `${numberCounter}.`,
+          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        });
+        numberCounter++;
       }
 
-      // 단어 (첫 번째 의미일 때만 추가, rowSpan 적용)
-      if (i === 0) {
+      // 체크박스
+      if (options.includeCheckbox) {
         row.push({
-          content: item.word,
-          rowSpan: meanings.length,
-          styles: { fontStyle: 'bold', fontSize: 14, halign: 'center', valign: 'middle' }
+          content: '',
+          styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
         });
       }
 
-      // 의미 (한글 뜻)
-      row.push(meaning.meaning || '-');
+      // 문장
+      row.push({
+        content: item.word,
+        styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      });
 
-      // 영영뜻
-      if (options.definitions > 0) {
-        row.push(meaning.definition || '-');
-      }
-
-      // 유의어
-      if (options.synonyms > 0) {
-        const synonyms = meaning.synonyms || [];
-        row.push(synonyms.length > 0 ? synonyms.join(', ') : '-');
-      }
-
-      // 반의어
-      if (options.antonyms > 0) {
-        const antonyms = meaning.antonyms || [];
-        row.push(antonyms.length > 0 ? antonyms.join(', ') : '-');
-      }
-
-      // 관계어
-      if (options.related > 0) {
-        const related = meaning.related || [];
-        row.push(related.length > 0 ? related.join(', ') : '-');
+      // 레이아웃 타입에 따른 의미 표시
+      if (options.layoutType === 'memorization') {
+        // 암기용: 빈칸
+        row.push({
+          content: '________________',
+          styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+        });
+      } else {
+        // 학습용: 활용 예시 표시
+        let examplesText = '';
+        if (item.examples && item.examples.length > 0) {
+          examplesText = 'Usage Examples:\n' + item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
+        }
+        if (item.similarExpressions && item.similarExpressions.length > 0) {
+          if (examplesText) examplesText += '\n\n';
+          examplesText += item.similarExpressions[0];
+        }
+        row.push(examplesText || '-');
       }
 
       tableBody.push(row);
+      continue;
     }
+
+    // 한글 타입 처리
+    if (item.type === 'korean') {
+      const row = [];
+
+      // 넘버링
+      if (options.includeNumbering) {
+        row.push({
+          content: `${numberCounter}.`,
+          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        });
+        numberCounter++;
+      }
+
+      // 체크박스
+      if (options.includeCheckbox) {
+        row.push({
+          content: '',
+          styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+        });
+      }
+
+      // 한글 단어
+      row.push({
+        content: `${item.word} → ${item.englishWord || item.meanings?.[0]?.meaning || ''}`,
+        styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      });
+
+      // 레이아웃 타입에 따른 의미 표시
+      if (options.layoutType === 'memorization') {
+        // 암기용: 빈칸
+        row.push({
+          content: '________________',
+          styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+        });
+      } else {
+        // 학습용: 의미 표시
+        if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
+          row.push(item.englishWord || item.meanings?.[0]?.meaning || '-');
+        }
+
+        if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
+          row.push(item.meanings?.[0]?.definition || '-');
+        }
+      }
+
+      tableBody.push(row);
+      continue;
+    }
+
+    // 일반 단어/숙어 처리
+    const meanings = item.meanings || [];
+    if (meanings.length === 0) continue;
+
+    // 첫 번째 의미만 사용 (1개 고정)
+    const meaning = meanings[0];
+    const row = [];
+
+    // 넘버링
+    if (options.includeNumbering) {
+      row.push({
+        content: `${numberCounter}.`,
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+      });
+      numberCounter++;
+    }
+
+    // 체크박스
+    if (options.includeCheckbox) {
+      row.push({
+        content: '',
+        styles: { halign: 'center', valign: 'middle', fontSize: 10 }
+      });
+    }
+
+    // 단어
+    row.push({
+      content: item.word,
+      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+    });
+
+    // 레이아웃 타입에 따른 의미 표시
+    if (options.layoutType === 'memorization') {
+      // 암기용: 빈칸
+      row.push({
+        content: '________________',
+        styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+      });
+    } else {
+      // 학습용: 의미 표시
+      if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
+        row.push(meaning.meaning || '-');
+      }
+
+      if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
+        // 영영뜻 + 예문 (학습용)
+        let definitionText = meaning.definition || '-';
+        if (meaning.examples && meaning.examples.length > 0) {
+          definitionText += '\n\nExample: ' + meaning.examples[0];
+        }
+        row.push(definitionText);
+      }
+    }
+
+    tableBody.push(row);
   }
 
-  // 테이블 생성 (autoTable 함수 직접 호출)
-  autoTable(doc, {
-    head: [headers],
-    body: tableBody,
-    startY: startY,
-    margin: {
-      top: marginTop,
-      bottom: marginBottom,
-      left: marginLeft,
-      right: marginRight
-    },
-    headStyles: {
-      fillColor: [44, 62, 80],
-      textColor: [255, 255, 255],
-      fontSize: 12,
-      fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle'
-    },
-    bodyStyles: {
-      fontSize: 11,
-      textColor: [0, 0, 0],
-      valign: 'middle'
-    },
-    alternateRowStyles: {
-      fillColor: [249, 249, 249]
-    },
-    lineColor: [221, 221, 221],
-    lineWidth: 0.1,
-    rowPageBreak: 'avoid'
+  // 페이지당 20개씩 나누기
+  const ITEMS_PER_PAGE = 20;
+  const chunks = [];
+  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
+    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
+  }
+
+  // 각 청크를 별도 페이지에 테이블로 생성
+  chunks.forEach((chunk, index) => {
+    if (index > 0) {
+      doc.addPage();
+      startY = marginTop;
+
+      // 새 페이지마다 날짜 표시 (상단 여백에)
+      if (options.customDate) {
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Study Date: ${options.customDate}`, marginLeft, 12);
+        // startY는 그대로 20mm 유지
+      }
+    }
+
+    // 체크박스 컬럼 인덱스 찾기
+    const checkboxColIndex = options.includeNumbering ? 1 : 0;
+
+    // 컬럼 너비 설정 (고정)
+    const columnStyles = {};
+    let colIndex = 0;
+
+    if (options.includeNumbering) {
+      columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
+      colIndex++;
+    }
+
+    if (options.includeCheckbox) {
+      columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
+      colIndex++;
+    }
+
+    // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
+    const pageWidth = 210; // A4 width in mm
+    const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
+    const remainingWidth = pageWidth - usedWidth;
+    const itemWidth = remainingWidth * 0.4; // 40%
+    const meaningWidth = remainingWidth * 0.6; // 60%
+
+    columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
+    columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
+
+    autoTable(doc, {
+      head: [headers],
+      body: chunk,
+      startY: startY,
+      margin: {
+        top: marginTop,
+        bottom: marginBottom,
+        left: marginLeft,
+        right: marginRight
+      },
+      theme: 'grid',
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'normal',
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
+      },
+      bodyStyles: {
+        fontSize: 10,
+        fontStyle: 'normal',
+        textColor: [0, 0, 0],
+        valign: 'middle',
+        halign: 'left',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+        overflow: 'linebreak',
+        cellWidth: 'wrap'
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      columnStyles: columnStyles,
+      didDrawCell: (data) => {
+        // 체크박스 그리기
+        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+          const cellX = data.cell.x;
+          const cellY = data.cell.y;
+          const cellWidth = data.cell.width;
+          const cellHeight = data.cell.height;
+          const boxSize = 3;
+          const x = cellX + (cellWidth - boxSize) / 2;
+          const y = cellY + (cellHeight - boxSize) / 2;
+
+          // 헤더는 흰색, 바디는 검은색
+          if (data.section === 'head') {
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, boxSize, boxSize);
+          } else {
+            drawCheckbox(doc, x, y, boxSize);
+          }
+        }
+      },
+      willDrawCell: (data) => {
+        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
+        if (data.section === 'body' && data.cell.raw) {
+          const text = String(data.cell.raw.content || data.cell.raw);
+          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
+          const cellHeight = 12; // 고정 높이 12mm
+
+          // 텍스트 길이 측정
+          doc.setFontSize(10);
+          const textWidth = doc.getTextWidth(text);
+
+          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
+          const estimatedLines = Math.ceil(textWidth / cellWidth);
+
+          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
+          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
+          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
+          if (estimatedLines > 3) {
+            data.cell.styles.fontSize = 7; // 4줄 이상
+          } else if (estimatedLines > 2) {
+            data.cell.styles.fontSize = 8; // 3줄
+          } else if (estimatedLines > 1.5) {
+            data.cell.styles.fontSize = 9; // 2줄
+          }
+        }
+      }
+    });
   });
 }
 
 /**
  * 분류 형식 PDF 생성
  */
-function generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop) {
+function generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, drawCheckbox) {
   // 유형별로 데이터 분류
   const words = wordData.filter(item => item.type === 'word' && !item.error);
   const phrases = wordData.filter(item => item.type === 'phrase' && !item.error);
   const sentences = wordData.filter(item => item.type === 'sentence' && !item.error);
+  const korean = wordData.filter(item => item.type === 'korean' && !item.error);
 
   let currentY = startY;
 
@@ -179,10 +420,10 @@ function generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marg
   if (words.length > 0) {
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('단어 (Words)', marginLeft, currentY);
+    doc.text('Words', marginLeft, currentY);
     currentY += 8;
 
-    currentY = createTableForCategory(doc, words, options, currentY, marginLeft, marginRight);
+    currentY = createTableForCategory(doc, words, options, currentY, marginLeft, marginRight, drawCheckbox);
     currentY += 10; // 섹션 간 간격
   }
 
@@ -196,10 +437,10 @@ function generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marg
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('숙어 (Phrases)', marginLeft, currentY);
+    doc.text('Phrases', marginLeft, currentY);
     currentY += 8;
 
-    currentY = createTableForCategory(doc, phrases, options, currentY, marginLeft, marginRight);
+    currentY = createTableForCategory(doc, phrases, options, currentY, marginLeft, marginRight, drawCheckbox);
     currentY += 10;
   }
 
@@ -213,151 +454,627 @@ function generateCategorizedPDF(doc, wordData, options, startY, marginLeft, marg
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);
-    doc.text('문장 (Sentences)', marginLeft, currentY);
+    doc.text('Sentences', marginLeft, currentY);
     currentY += 8;
 
-    createSentenceTable(doc, sentences, currentY, marginLeft, marginRight);
+    currentY = createSentenceTable(doc, sentences, options, currentY, marginLeft, marginRight, drawCheckbox);
+    currentY += 10;
+  }
+
+  // 한글 섹션
+  if (korean.length > 0) {
+    // 페이지 넘김 체크
+    if (currentY > 250) {
+      doc.addPage();
+      currentY = marginTop;
+    }
+
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text('Korean to English', marginLeft, currentY);
+    currentY += 8;
+
+    createKoreanTable(doc, korean, options, currentY, marginLeft, marginRight, drawCheckbox);
   }
 }
 
 /**
  * 카테고리별 테이블 생성
  */
-function createTableForCategory(doc, data, options, startY, marginLeft, marginRight) {
+function createTableForCategory(doc, data, options, startY, marginLeft, marginRight, drawCheckbox) {
   const headers = [];
-  if (options.showCheckbox) {
-    headers.push('☐');
-  }
-  headers.push('단어', '의미');
 
-  if (options.definitions > 0) headers.push('영영뜻');
-  if (options.synonyms > 0) headers.push('유의어');
-  if (options.antonyms > 0) headers.push('반의어');
-  if (options.related > 0) headers.push('관계어');
+  // 넘버링 옵션
+  if (options.includeNumbering) {
+    headers.push('No.');
+  }
+
+  // 체크박스 옵션
+  if (options.includeCheckbox) {
+    headers.push('');
+  }
+
+  // 통일된 헤더 사용
+  headers.push('Item');
+  headers.push('Meaning');
 
   const tableBody = [];
+  let numberCounter = 1; // 카테고리별 넘버링
 
   for (const item of data) {
     const meanings = item.meanings || [];
+    if (meanings.length === 0) continue;
 
-    for (let i = 0; i < meanings.length; i++) {
-      const meaning = meanings[i];
-      const row = [];
+    // 첫 번째 의미만 사용 (1개 고정)
+    const meaning = meanings[0];
+    const row = [];
 
-      if (options.showCheckbox) {
-        if (i === 0) {
-          row.push({
-            content: '☐',
-            rowSpan: meanings.length,
-            styles: { halign: 'center', valign: 'middle' }
-          });
-        }
-      }
-
-      if (i === 0) {
-        row.push({
-          content: item.word,
-          rowSpan: meanings.length,
-          styles: { fontStyle: 'bold', fontSize: 14, halign: 'center', valign: 'middle' }
-        });
-      }
-
-      row.push(meaning.meaning || '-');
-
-      if (options.definitions > 0) {
-        row.push(meaning.definition || '-');
-      }
-
-      if (options.synonyms > 0) {
-        const synonyms = meaning.synonyms || [];
-        row.push(synonyms.length > 0 ? synonyms.join(', ') : '-');
-      }
-
-      if (options.antonyms > 0) {
-        const antonyms = meaning.antonyms || [];
-        row.push(antonyms.length > 0 ? antonyms.join(', ') : '-');
-      }
-
-      if (options.related > 0) {
-        const related = meaning.related || [];
-        row.push(related.length > 0 ? related.join(', ') : '-');
-      }
-
-      tableBody.push(row);
+    // 넘버링
+    if (options.includeNumbering) {
+      row.push({
+        content: `${numberCounter}.`,
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+      });
+      numberCounter++;
     }
+
+    // 체크박스
+    if (options.includeCheckbox) {
+      row.push({
+        content: '',
+        styles: { halign: 'center', valign: 'middle', fontSize: 10 }
+      });
+    }
+
+    row.push({
+      content: item.word,
+      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+    });
+
+    // 레이아웃 타입에 따른 의미 표시
+    if (options.layoutType === 'memorization') {
+      // 암기용: 빈칸
+      row.push({
+        content: '________________',
+        styles: { halign: 'center', valign: 'middle', textColor: [180, 180, 180] }
+      });
+    } else {
+      // 학습용: 의미 표시
+      if (options.meaningDisplay === 'korean' || options.meaningDisplay === 'both') {
+        row.push(meaning.meaning || '-');
+      }
+
+      if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
+        // 영영뜻 + 예문 (학습용)
+        let definitionText = meaning.definition || '-';
+        if (meaning.examples && meaning.examples.length > 0) {
+          definitionText += '\n\nExample: ' + meaning.examples[0];
+        }
+        row.push(definitionText);
+      }
+    }
+
+    tableBody.push(row);
   }
 
-  autoTable(doc, {
-    head: [headers],
-    body: tableBody,
-    startY: startY,
-    margin: {
-      left: marginLeft,
-      right: marginRight
-    },
-    headStyles: {
-      fillColor: [44, 62, 80],
-      textColor: [255, 255, 255],
-      fontSize: 12,
-      fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle'
-    },
-    bodyStyles: {
-      fontSize: 11,
-      textColor: [0, 0, 0],
-      valign: 'middle'
-    },
-    alternateRowStyles: {
-      fillColor: [249, 249, 249]
-    },
-    lineColor: [221, 221, 221],
-    lineWidth: 0.1,
-    rowPageBreak: 'avoid'
+  // 페이지당 20개씩 나누기
+  const ITEMS_PER_PAGE = 20;
+  const chunks = [];
+  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
+    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
+  }
+
+  let currentY = startY;
+
+  // 체크박스 컬럼 인덱스
+  const checkboxColIndex = options.includeNumbering ? 1 : 0;
+
+  // 컬럼 너비 설정 (고정)
+  const columnStyles = {};
+  let colIndex = 0;
+
+  if (options.includeNumbering) {
+    columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
+    colIndex++;
+  }
+
+  if (options.includeCheckbox) {
+    columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
+    colIndex++;
+  }
+
+  // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
+  const pageWidth = 210; // A4 width in mm
+  const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
+  const remainingWidth = pageWidth - usedWidth;
+  const itemWidth = remainingWidth * 0.4; // 40%
+  const meaningWidth = remainingWidth * 0.6; // 60%
+
+  columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
+  columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
+
+  // 각 청크를 테이블로 생성
+  chunks.forEach((chunk, index) => {
+    if (index > 0) {
+      doc.addPage();
+      currentY = 20; // marginTop
+    }
+
+    autoTable(doc, {
+      head: [headers],
+      body: chunk,
+      startY: currentY,
+      margin: {
+        left: marginLeft,
+        right: marginRight
+      },
+      theme: 'grid',
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'normal',
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
+      },
+      bodyStyles: {
+        fontSize: 10,
+        fontStyle: 'normal',
+        textColor: [0, 0, 0],
+        valign: 'middle',
+        halign: 'left',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+        overflow: 'linebreak',
+        cellWidth: 'wrap'
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      columnStyles: columnStyles,
+      didDrawCell: (data) => {
+        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+          const cellX = data.cell.x;
+          const cellY = data.cell.y;
+          const cellWidth = data.cell.width;
+          const cellHeight = data.cell.height;
+          const boxSize = 3;
+          const x = cellX + (cellWidth - boxSize) / 2;
+          const y = cellY + (cellHeight - boxSize) / 2;
+
+          // 헤더는 흰색, 바디는 검은색
+          if (data.section === 'head') {
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, boxSize, boxSize);
+          } else {
+            drawCheckbox(doc, x, y, boxSize);
+          }
+        }
+      },
+      willDrawCell: (data) => {
+        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
+        if (data.section === 'body' && data.cell.raw) {
+          const text = String(data.cell.raw.content || data.cell.raw);
+          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
+          const cellHeight = 12; // 고정 높이 12mm
+
+          // 텍스트 길이 측정
+          doc.setFontSize(10);
+          const textWidth = doc.getTextWidth(text);
+
+          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
+          const estimatedLines = Math.ceil(textWidth / cellWidth);
+
+          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
+          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
+          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
+          if (estimatedLines > 3) {
+            data.cell.styles.fontSize = 7; // 4줄 이상
+          } else if (estimatedLines > 2) {
+            data.cell.styles.fontSize = 8; // 3줄
+          } else if (estimatedLines > 1.5) {
+            data.cell.styles.fontSize = 9; // 2줄
+          }
+        }
+      }
+    });
+
+    currentY = doc.lastAutoTable.finalY;
   });
 
-  return doc.lastAutoTable.finalY + 5; // 다음 테이블 시작 위치 반환
+  return currentY + 5; // 다음 테이블 시작 위치 반환
 }
 
 /**
  * 문장 전용 테이블 생성
  */
-function createSentenceTable(doc, sentences, startY, marginLeft, marginRight) {
-  const headers = ['☐', '문장', '번역'];
-  const tableBody = sentences.map(item => [
-    '☐',
-    item.word || item.original,
-    item.translation || '-'
-  ]);
+function createSentenceTable(doc, sentences, options, startY, marginLeft, marginRight, drawCheckbox) {
+  const headers = [];
 
-  autoTable(doc, {
-    head: [headers],
-    body: tableBody,
-    startY: startY,
-    margin: {
-      left: marginLeft,
-      right: marginRight
-    },
-    headStyles: {
-      fillColor: [52, 152, 219],
-      textColor: [255, 255, 255],
-      fontSize: 12,
-      fontStyle: 'bold',
-      halign: 'center',
-      valign: 'middle'
-    },
-    bodyStyles: {
-      fontSize: 11,
-      textColor: [0, 0, 0],
-      valign: 'middle'
-    },
-    alternateRowStyles: {
-      fillColor: [249, 249, 249]
-    },
-    lineColor: [221, 221, 221],
-    lineWidth: 0.1,
-    rowPageBreak: 'avoid'
+  // 넘버링 옵션
+  if (options.includeNumbering) {
+    headers.push('No.');
+  }
+
+  // 체크박스 옵션
+  if (options.includeCheckbox) {
+    headers.push('');
+  }
+
+  // 통일된 헤더 사용
+  headers.push('Item');
+  headers.push('Meaning');
+
+  const tableBody = sentences.map((item, index) => {
+    const row = [];
+
+    // 넘버링
+    if (options.includeNumbering) {
+      row.push({
+        content: `${index + 1}.`,
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+      });
+    }
+
+    // 체크박스
+    if (options.includeCheckbox) {
+      row.push({
+        content: '',
+        styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+      });
+    }
+
+    row.push({
+      content: item.word || item.original,
+      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+    });
+
+    // 레이아웃 타입에 따른 예시 표시
+    if (options.layoutType === 'memorization') {
+      row.push('________________');
+    } else {
+      // 학습용: 활용 예시 표시
+      let examplesText = '';
+      if (item.examples && item.examples.length > 0) {
+        examplesText = 'Usage Examples:\n' + item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
+      }
+      if (item.similarExpressions && item.similarExpressions.length > 0) {
+        if (examplesText) examplesText += '\n\n';
+        examplesText += item.similarExpressions[0];
+      }
+      row.push(examplesText || '-');
+    }
+
+    return row;
   });
+
+  // 페이지당 20개씩 나누기
+  const ITEMS_PER_PAGE = 20;
+  const chunks = [];
+  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
+    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
+  }
+
+  let currentY = startY;
+  const checkboxColIndex = options.includeNumbering ? 1 : 0;
+
+  // 컬럼 너비 설정 (고정)
+  const columnStyles = {};
+  let colIndex = 0;
+
+  if (options.includeNumbering) {
+    columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
+    colIndex++;
+  }
+
+  if (options.includeCheckbox) {
+    columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
+    colIndex++;
+  }
+
+  // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
+  const pageWidth = 210; // A4 width in mm
+  const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
+  const remainingWidth = pageWidth - usedWidth;
+  const itemWidth = remainingWidth * 0.4; // 40%
+  const meaningWidth = remainingWidth * 0.6; // 60%
+
+  columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
+  columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
+
+  chunks.forEach((chunk, index) => {
+    if (index > 0) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    autoTable(doc, {
+      head: [headers],
+      body: chunk,
+      startY: currentY,
+      margin: {
+        left: marginLeft,
+        right: marginRight
+      },
+      theme: 'grid',
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'normal',
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
+      },
+      bodyStyles: {
+        fontSize: 10,
+        fontStyle: 'normal',
+        textColor: [0, 0, 0],
+        valign: 'middle',
+        halign: 'left',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+        overflow: 'linebreak',
+        cellWidth: 'wrap'
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      columnStyles: columnStyles,
+      didDrawCell: (data) => {
+        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+          const cellX = data.cell.x;
+          const cellY = data.cell.y;
+          const cellWidth = data.cell.width;
+          const cellHeight = data.cell.height;
+          const boxSize = 3;
+          const x = cellX + (cellWidth - boxSize) / 2;
+          const y = cellY + (cellHeight - boxSize) / 2;
+
+          // 헤더는 흰색, 바디는 검은색
+          if (data.section === 'head') {
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, boxSize, boxSize);
+          } else {
+            drawCheckbox(doc, x, y, boxSize);
+          }
+        }
+      },
+      willDrawCell: (data) => {
+        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
+        if (data.section === 'body' && data.cell.raw) {
+          const text = String(data.cell.raw.content || data.cell.raw);
+          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
+          const cellHeight = 12; // 고정 높이 12mm
+
+          // 텍스트 길이 측정
+          doc.setFontSize(10);
+          const textWidth = doc.getTextWidth(text);
+
+          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
+          const estimatedLines = Math.ceil(textWidth / cellWidth);
+
+          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
+          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
+          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
+          if (estimatedLines > 3) {
+            data.cell.styles.fontSize = 7; // 4줄 이상
+          } else if (estimatedLines > 2) {
+            data.cell.styles.fontSize = 8; // 3줄
+          } else if (estimatedLines > 1.5) {
+            data.cell.styles.fontSize = 9; // 2줄
+          }
+        }
+      }
+    });
+
+    currentY = doc.lastAutoTable.finalY;
+  });
+
+  return currentY + 5; // 다음 테이블 시작 위치 반환
+}
+
+/**
+ * 한글 전용 테이블 생성
+ */
+function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight, drawCheckbox) {
+  const headers = [];
+
+  // 넘버링 옵션
+  if (options.includeNumbering) {
+    headers.push('No.');
+  }
+
+  // 체크박스 옵션
+  if (options.includeCheckbox) {
+    headers.push('');
+  }
+
+  // 통일된 헤더 사용
+  headers.push('Item');
+  headers.push('Meaning');
+
+  const tableBody = korean.map((item, index) => {
+    const row = [];
+
+    // 넘버링
+    if (options.includeNumbering) {
+      row.push({
+        content: `${index + 1}.`,
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+      });
+    }
+
+    // 체크박스
+    if (options.includeCheckbox) {
+      row.push({
+        content: '',
+        styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+      });
+    }
+
+    row.push({
+      content: item.word,
+      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+    });
+
+    // 레이아웃 타입에 따른 표시
+    if (options.layoutType === 'memorization') {
+      row.push('________________');
+    } else {
+      // 학습용: 영어 단어 + 정의를 하나의 컬럼에 표시
+      const englishWord = item.englishWord || item.meanings?.[0]?.meaning || '-';
+      const definition = item.meanings?.[0]?.definition || '';
+      const meaningText = definition ? `${englishWord}\n\n${definition}` : englishWord;
+      row.push(meaningText);
+    }
+
+    return row;
+  });
+
+  // 페이지당 20개씩 나누기
+  const ITEMS_PER_PAGE = 20;
+  const chunks = [];
+  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
+    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
+  }
+
+  let currentY = startY;
+  const checkboxColIndex = options.includeNumbering ? 1 : 0;
+
+  // 컬럼 너비 설정 (고정)
+  const columnStyles = {};
+  let colIndex = 0;
+
+  if (options.includeNumbering) {
+    columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
+    colIndex++;
+  }
+
+  if (options.includeCheckbox) {
+    columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
+    colIndex++;
+  }
+
+  // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
+  const pageWidth = 210; // A4 width in mm
+  const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
+  const remainingWidth = pageWidth - usedWidth;
+  const itemWidth = remainingWidth * 0.4; // 40%
+  const meaningWidth = remainingWidth * 0.6; // 60%
+
+  columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
+  columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
+
+  chunks.forEach((chunk, index) => {
+    if (index > 0) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    autoTable(doc, {
+      head: [headers],
+      body: chunk,
+      startY: currentY,
+      margin: {
+        left: marginLeft,
+        right: marginRight
+      },
+      theme: 'grid',
+      headStyles: {
+        fillColor: [44, 62, 80],
+        textColor: [255, 255, 255],
+        fontSize: 10,
+        fontStyle: 'normal',
+        halign: 'center',
+        valign: 'middle',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1
+      },
+      bodyStyles: {
+        fontSize: 10,
+        fontStyle: 'normal',
+        textColor: [0, 0, 0],
+        valign: 'middle',
+        halign: 'left',
+        cellPadding: 2,
+        minCellHeight: 12,
+        lineColor: [200, 200, 200],
+        lineWidth: 0.1,
+        overflow: 'linebreak',
+        cellWidth: 'wrap'
+      },
+      alternateRowStyles: {
+        fillColor: [249, 249, 249]
+      },
+      columnStyles: columnStyles,
+      didDrawCell: (data) => {
+        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+          const cellX = data.cell.x;
+          const cellY = data.cell.y;
+          const cellWidth = data.cell.width;
+          const cellHeight = data.cell.height;
+          const boxSize = 3;
+          const x = cellX + (cellWidth - boxSize) / 2;
+          const y = cellY + (cellHeight - boxSize) / 2;
+
+          // 헤더는 흰색, 바디는 검은색
+          if (data.section === 'head') {
+            doc.setDrawColor(255, 255, 255);
+            doc.setLineWidth(0.3);
+            doc.rect(x, y, boxSize, boxSize);
+          } else {
+            drawCheckbox(doc, x, y, boxSize);
+          }
+        }
+      },
+      willDrawCell: (data) => {
+        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
+        if (data.section === 'body' && data.cell.raw) {
+          const text = String(data.cell.raw.content || data.cell.raw);
+          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
+          const cellHeight = 12; // 고정 높이 12mm
+
+          // 텍스트 길이 측정
+          doc.setFontSize(10);
+          const textWidth = doc.getTextWidth(text);
+
+          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
+          const estimatedLines = Math.ceil(textWidth / cellWidth);
+
+          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
+          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
+          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
+          if (estimatedLines > 3) {
+            data.cell.styles.fontSize = 7; // 4줄 이상
+          } else if (estimatedLines > 2) {
+            data.cell.styles.fontSize = 8; // 3줄
+          } else if (estimatedLines > 1.5) {
+            data.cell.styles.fontSize = 9; // 2줄
+          }
+        }
+      }
+    });
+
+    currentY = doc.lastAutoTable.finalY;
+  });
+
+  return currentY + 5; // 다음 테이블 시작 위치 반환
 }
 
 /**
@@ -370,7 +1087,7 @@ function addPageNumbers(doc) {
     doc.setFontSize(10);
     doc.setTextColor(102, 102, 102);
 
-    const pageText = `페이지 ${i} / 총 ${pageCount}`;
+    const pageText = `Page ${i} / ${pageCount}`;
     const textWidth = doc.getTextWidth(pageText);
     const x = (210 - textWidth) / 2;
     const y = 297 - 10;
