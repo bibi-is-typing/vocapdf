@@ -19,6 +19,8 @@ function App() {
   const [progress, setProgress] = useState('');
   const [progressPercent, setProgressPercent] = useState(0);
   const [appliedCefrLevel, setAppliedCefrLevel] = useState('A2');
+  const [excludedCount, setExcludedCount] = useState(0);
+  const [searchedCount, setSearchedCount] = useState(0);
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
@@ -38,29 +40,10 @@ function App() {
   });
 
   const parseWords = (text) => {
-    const lines = text.split(/\n+/); // 줄바꿈으로 나누기
-    const result = [];
-
-    lines.forEach(line => {
-      const trimmed = line.trim();
-      if (!trimmed) return;
-
-      // 쉼표가 있고, 단어가 5개 이하면 쉼표로 구분 (단어 나열로 간주)
-      // 예: "apple, banana, orange"
-      const commaCount = (trimmed.match(/,/g) || []).length;
-      const wordCount = trimmed.split(/\s+/).length;
-
-      if (commaCount > 0 && wordCount <= 5 && !/[.!?]$/.test(trimmed)) {
-        // 쉼표로 구분된 단어 나열
-        const words = trimmed.split(/[,;]+/).map(w => w.trim()).filter(w => w.length > 0);
-        result.push(...words);
-      } else {
-        // 문장이거나 단일 단어/숙어
-        result.push(trimmed);
-      }
-    });
-
-    return result;
+    return text
+      .split(/[\n,;]+/)
+      .map(word => word.trim())
+      .filter(word => word.length > 0);
   };
 
   const handleFileUpload = async (e) => {
@@ -73,7 +56,10 @@ function App() {
       setProgress('파일을 읽고 있어요');
 
       const result = await uploadFile(file);
-      setWords(result.data.words.join('\n'));
+      const uploadedWords = result.data.words;
+
+      // 모든 단어 입력 (한글 포함)
+      setWords(uploadedWords.join('\n'));
       setProgress('');
     } catch (err) {
       setError(err.response?.data?.error?.message || '파일을 읽을 수 없어요');
@@ -100,11 +86,17 @@ function App() {
       return;
     }
 
-    // 한글 입력 체크
+    // 한글 자동 필터링
     const koreanRegex = /[\uAC00-\uD7AF]/;
-    const koreanWords = wordList.filter(word => koreanRegex.test(word));
-    if (koreanWords.length > 0) {
-      setError(`영어 단어만 입력할 수 있어요. (${koreanWords.slice(0, 3).join(', ')}${koreanWords.length > 3 ? ' 외 ' + (koreanWords.length - 3) + '개' : ''})`);
+    const filteredWordList = wordList.filter(word => !koreanRegex.test(word));
+    const koreanCount = wordList.length - filteredWordList.length;
+
+    if (koreanCount > 0) {
+      setExcludedCount(koreanCount);
+    }
+
+    if (filteredWordList.length === 0) {
+      setError('영어 단어를 입력해주세요.');
       return;
     }
 
@@ -113,12 +105,12 @@ function App() {
       setError(null);
 
       // 예상 소요 시간 계산 (단어당 약 0.6초 기준)
-      const estimatedSeconds = Math.ceil(wordList.length * 0.6);
+      const estimatedSeconds = Math.ceil(filteredWordList.length * 0.6);
       const estimatedTime = estimatedSeconds < 60
         ? `약 ${estimatedSeconds}초`
         : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
 
-      setProgress(`0/${wordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
+      setProgress(`0/${filteredWordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
       setProgressPercent(0);
 
       // 진행률 시뮬레이션 (0% -> 90%까지 점진적 증가)
@@ -130,22 +122,23 @@ function App() {
       let currentPercent = 0;
       const progressTimer = setInterval(() => {
         currentPercent = Math.min(90, currentPercent + percentPerStep);
-        const estimatedProcessed = Math.floor((currentPercent / 100) * wordList.length);
+        const estimatedProcessed = Math.floor((currentPercent / 100) * filteredWordList.length);
         setProgressPercent(Math.floor(currentPercent));
-        setProgress(`${estimatedProcessed}/${wordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
+        setProgress(`${estimatedProcessed}/${filteredWordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
       }, updateInterval);
 
       try {
-        const result = await lookupWords(wordList, options);
+        const result = await lookupWords(filteredWordList, options);
         clearInterval(progressTimer);
 
         // 완료 시 100%로 설정
         setProgressPercent(100);
-        setProgress(`${wordList.length}/${wordList.length} 단어를 찾았어요!`);
+        setProgress(`${filteredWordList.length}/${filteredWordList.length} 단어를 찾았어요!`);
 
         // 잠시 후 결과 표시
         setTimeout(() => {
           setWordData(result.data);
+          setSearchedCount(result.data.length); // 검색된 단어 수 저장
           setAppliedCefrLevel(options.cefrLevel);
           setProgress('');
           setProgressPercent(0);
@@ -188,6 +181,8 @@ function App() {
     setError(null);
     setProgress('');
     setProgressPercent(0);
+    setExcludedCount(0);
+    setSearchedCount(0);
     setOptions({
       meanings: 1,
       definitions: 1,
@@ -212,6 +207,7 @@ function App() {
 
   const totalWords = words.trim() ? parseWords(words).length : 0;
   const canGeneratePdf = !!(wordData && wordData.length > 0);
+  const isLevelChanged = canGeneratePdf && options.cefrLevel !== appliedCefrLevel;
   const currentYear = new Date().getFullYear();
 
   return (
@@ -278,7 +274,7 @@ function App() {
         <section id="overview" className="border-b border-border/60 bg-secondary/30">
           <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-12 md:py-16 lg:flex-row lg:items-center lg:gap-10">
             <div className="w-full space-y-4 sm:space-y-6">
-              <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/70 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-3 sm:py-1 sm:text-xs">
+              <span className="inline-flex items-center gap-2 rounded-full border border-border/80 bg-card/70 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:px-4 sm:py-2 sm:text-xs">
                 CEFR 레벨별 맞춤 제작
               </span>
               <h1 className="text-2xl font-bold leading-tight text-foreground sm:text-3xl md:text-4xl lg:text-5xl">
@@ -302,7 +298,7 @@ function App() {
                   disabled={!canGeneratePdf}
                   className="h-12 text-sm transition-all active:scale-95 sm:text-base hover:shadow-lg disabled:active:scale-100"
                 >
-                  📥 PDF 다운로드
+                  PDF 다운로드
                 </Button>
               </div>
             </div>
@@ -312,41 +308,70 @@ function App() {
         <section id="workflow" className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-10 md:py-12">
           {/* 모바일/태블릿: 사용법 먼저 표시 */}
           {!canGeneratePdf && !error && (
-            <Card className="mb-4 border border-dashed border-border/70 bg-card/70 shadow-sm lg:hidden">
+            <Card className="mb-4 border border-border/70 bg-card/80 shadow-md lg:hidden">
               <CardHeader className="space-y-1.5 sm:space-y-2">
-                <CardTitle className="text-lg font-semibold text-foreground sm:text-xl">어떻게 사용하나요?</CardTitle>
+                <CardTitle className="text-lg font-semibold text-foreground sm:text-xl">
+                  3단계면 끝나요.
+                </CardTitle>
                 <CardDescription className="text-xs sm:text-sm">
-                  단어를 입력하거나 파일을 올리면 결과와 미리보기를 볼 수 있어요.
+                  간단하게 시작해보세요.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4">
-                <ol className="list-decimal space-y-2 pl-4 text-xs text-muted-foreground sm:space-y-3 sm:pl-5 sm:text-sm">
-                  <li>단어를 입력하거나 파일을 올려주세요.</li>
-                  <li>
-                    CEFR 레벨을 고르고 <span className="font-medium text-foreground">검색</span> 버튼을 눌러요.
-                  </li>
-                  <li>원하는 레이아웃으로 PDF를 다운받으세요.</li>
-                </ol>
+              <CardContent className="space-y-4 sm:space-y-5">
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">1</div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-foreground sm:text-sm">단어를 입력하거나 파일을 올려요.</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">단어, 숙어, 문장 모두 가능해요.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">2</div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-foreground sm:text-sm">CEFR 레벨을 선택하고 검색해요.</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">A2~C1 레벨에 맞춰 뜻을 찾아줘요.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">3</div>
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-foreground sm:text-sm">레이아웃을 골라 PDF를 받아요.</p>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">학습용과 암기용 중 선택할 수 있어요.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 sm:p-4">
+                  <p className="text-xs font-semibold text-foreground sm:text-sm">이건 안 돼요.</p>
+                  <ul className="space-y-1 text-[10px] text-muted-foreground sm:text-xs">
+                    <li>• 한글 단어는 지원하지 않아요.</li>
+                    <li>• 500개 이상은 한 번에 검색할 수 없어요.</li>
+                    <li>• 5MB보다 큰 파일은 업로드할 수 없어요.</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
           )}
 
           <div className="flex flex-col gap-4 sm:gap-6 lg:grid lg:grid-cols-[420px,minmax(0,1fr)]">
-            <Card className="h-fit border border-border/70 shadow-lg shadow-primary/5">
-              <CardHeader className="space-y-2 sm:space-y-3">
-                <CardTitle className="text-xl font-semibold text-foreground sm:text-2xl">단어 입력</CardTitle>
-                <CardDescription className="text-sm sm:text-base">
-                  단어, 숙어, 문장을 한 줄에 하나씩 적거나 파일로 올려주세요.
-                </CardDescription>
-              </CardHeader>
+            <div className="space-y-4 sm:space-y-6">
+              <Card className="h-fit border border-border/70 shadow-lg shadow-primary/5">
+                <CardHeader className="space-y-2 sm:space-y-3">
+                  <CardTitle className="text-xl font-semibold text-foreground sm:text-2xl">단어 입력</CardTitle>
+                  <CardDescription className="text-sm sm:text-base">
+                    단어, 숙어, 문장을 한 줄에 하나씩 적거나 파일로 올려주세요.
+                  </CardDescription>
+                </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <Textarea
                   ref={wordInputRef}
                   value={words}
                   onChange={(e) => setWords(e.target.value)}
-                  placeholder={`줄바꿈으로 나누면 뭐든 가능해요.\n\nsustainable\nmake up for\nHow are you?\n\n쉼표는 짧은 단어만 구분해요. (5개 이하)\napple, banana, orange\n\n💡 긴 문장은 줄바꿈으로 구분해주세요.\n💡 한글은 아직 지원하지 않아요.`}
+                  placeholder={`이렇게 입력해주세요.\n\napple\nsustainable\nmake up for\nI brushed up on important idioms.`}
                   rows={12}
                   className="font-mono text-xs sm:text-sm"
+                  disabled={canGeneratePdf}
                 />
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:p-5">
@@ -378,19 +403,19 @@ function App() {
                   <div className="flex gap-2.5 sm:gap-3">
                     <div className="flex flex-1">
                       <span
-                        onClick={!loading && words.trim() ? handleLookup : undefined}
+                        onClick={!loading && words.trim() && (!canGeneratePdf || isLevelChanged) ? handleLookup : undefined}
                         className={`inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-semibold text-primary-foreground shadow transition-all hover:brightness-95 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 active:brightness-90 sm:gap-2 sm:px-4 sm:text-sm ${
-                          loading || !words.trim() ? 'pointer-events-none opacity-50' : 'cursor-pointer'
+                          loading || !words.trim() || (canGeneratePdf && !isLevelChanged) ? 'pointer-events-none opacity-50' : 'cursor-pointer'
                         }`}
                       >
-                        {loading ? '찾고 있어요' : '검색'}
+                        {loading ? '찾고 있어요' : isLevelChanged ? '다시 검색' : '검색'}
                       </span>
                     </div>
 
                     <div className="flex flex-1">
-                      <label htmlFor="file-upload" className="group relative flex flex-1">
+                      <label htmlFor="file-upload" className={`group relative flex flex-1 ${canGeneratePdf ? 'pointer-events-none opacity-50' : ''}`}>
                         <span className="upload-trigger inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-secondary/50 px-3 text-xs font-semibold text-primary transition-all hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-lg hover:-translate-y-0.5 active:scale-95 active:bg-primary active:text-primary-foreground focus-visible:border-primary focus-visible:bg-primary focus-visible:text-primary-foreground cursor-pointer sm:gap-2 sm:px-4 sm:text-sm">
-                          📁 파일 업로드
+                          파일 업로드
                         </span>
                         <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 hidden w-max -translate-x-1/2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[10px] text-foreground shadow-lg group-hover:block sm:text-xs">
                           txt, csv, md 파일 지원
@@ -401,6 +426,7 @@ function App() {
                           type="file"
                           accept=".txt,.csv,.md"
                           onChange={handleFileUpload}
+                          disabled={canGeneratePdf}
                           className="sr-only absolute -z-10 h-0 w-0 opacity-0"
                         />
                       </label>
@@ -411,7 +437,7 @@ function App() {
                     <button
                       onClick={handleReset}
                       disabled={loading}
-                      className={`inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-md border border-destructive/40 bg-destructive/10 px-3 text-xs font-semibold text-destructive shadow-sm transition-all hover:bg-destructive/15 hover:border-destructive/50 active:scale-95 sm:gap-2 sm:px-4 sm:text-sm ${
+                      className={`inline-flex h-12 w-full items-center justify-center gap-1.5 rounded-md border border-destructive/30 bg-secondary/50 px-3 text-xs font-semibold text-destructive shadow-sm transition-all hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive hover:shadow-md hover:-translate-y-0.5 active:scale-95 active:bg-destructive/10 sm:gap-2 sm:px-4 sm:text-sm ${
                         loading ? 'pointer-events-none opacity-50' : 'cursor-pointer'
                       }`}
                       aria-label="입력 초기화"
@@ -423,6 +449,15 @@ function App() {
               </CardContent>
             </Card>
 
+            {isLevelChanged && (
+              <Alert variant="warning" className="border border-accent/40 bg-accent/10">
+                <AlertDescription className="text-xs text-foreground sm:text-sm">
+                  <p className="font-medium">레벨이 바뀌었어요. 다시 검색해주세요.</p>
+                </AlertDescription>
+              </Alert>
+            )}
+            </div>
+
             <div className="space-y-4 sm:space-y-6" id="features">
               {error && (
                 <Alert variant="destructive" className="border border-destructive/40 bg-destructive/10 shadow-sm">
@@ -431,59 +466,69 @@ function App() {
               )}
 
               {!canGeneratePdf && !error && (
-                <Card className="hidden border border-dashed border-border/70 bg-card/70 shadow-sm lg:block">
+                <Card className="hidden border border-border/70 bg-card/80 shadow-md lg:block">
                   <CardHeader className="space-y-1.5 sm:space-y-2">
-                    <CardTitle className="text-lg font-semibold text-foreground sm:text-xl">어떻게 사용하나요?</CardTitle>
+                    <CardTitle className="text-lg font-semibold text-foreground sm:text-xl">
+                      3단계면 끝나요.
+                    </CardTitle>
                     <CardDescription className="text-xs sm:text-sm">
-                      단어를 입력하거나 파일을 올리면 결과와 미리보기를 볼 수 있어요.
+                      간단하게 시작해보세요.
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-3 sm:space-y-4">
-                    <ol className="list-decimal space-y-2 pl-4 text-xs text-muted-foreground sm:space-y-3 sm:pl-5 sm:text-sm">
-                      <li>단어를 입력하거나 파일을 올려주세요.</li>
-                      <li>
-                        CEFR 레벨을 고르고 <span className="font-medium text-foreground">검색</span> 버튼을 눌러요.
-                      </li>
-                      <li>원하는 레이아웃으로 PDF를 다운받으세요.</li>
-                    </ol>
+                  <CardContent className="space-y-4 sm:space-y-5">
+                    <div className="space-y-3">
+                      <div className="flex gap-3">
+                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">1</div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-foreground sm:text-sm">단어를 입력하거나 파일을 올려요.</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">단어, 숙어, 문장 모두 가능해요.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">2</div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-foreground sm:text-sm">CEFR 레벨을 선택하고 검색해요.</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">A2~C1 레벨에 맞춰 뜻을 찾아줘요.</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-3">
+                        <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-7 sm:w-7 sm:text-sm">3</div>
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-foreground sm:text-sm">레이아웃을 골라 PDF를 받아요.</p>
+                          <p className="mt-0.5 text-[10px] text-muted-foreground sm:text-xs">학습용과 암기용 중 선택할 수 있어요.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 rounded-lg border border-destructive/20 bg-destructive/5 p-3 sm:p-4">
+                      <p className="text-xs font-semibold text-foreground sm:text-sm">이건 안 돼요.</p>
+                      <ul className="space-y-1 text-[10px] text-muted-foreground sm:text-xs">
+                        <li>• 한글 단어는 지원하지 않아요.</li>
+                        <li>• 500개 이상은 한 번에 검색할 수 없어요.</li>
+                        <li>• 5MB보다 큰 파일은 업로드할 수 없어요.</li>
+                      </ul>
+                    </div>
                   </CardContent>
                 </Card>
               )}
 
               {canGeneratePdf && (
                 <>
-                  {options.cefrLevel !== appliedCefrLevel && (
-                    <Alert variant="warning" className="border border-accent/40 bg-accent/10">
-                      <AlertDescription className="text-xs text-foreground sm:text-sm">
-                        <p className="font-medium">레벨이 바뀌었어요. 다시 검색해주세요.</p>
-                        <Button
-                          onClick={handleLookup}
-                          disabled={loading}
-                          variant="default"
-                          size="sm"
-                          className="mt-2 text-xs sm:mt-3 sm:text-sm"
-                        >
-                          {options.cefrLevel} 레벨로 다시 검색
-                        </Button>
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
                   <dl className="grid grid-cols-3 gap-2 sm:gap-3 lg:gap-4">
                     <div className="flex flex-col gap-1 rounded-lg border border-border/70 bg-card/90 p-2 shadow-md sm:gap-1.5 sm:p-4 lg:gap-2 lg:p-5">
-                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">입력한 단어</dt>
+                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">입력</dt>
                       <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{totalWords}개</dd>
-                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">500개까지</dd>
+                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">최대 500개</dd>
                     </div>
                     <div className="flex flex-col gap-1 rounded-lg border border-border/70 bg-card/90 p-2 shadow-md sm:gap-1.5 sm:p-4 lg:gap-2 lg:p-5">
-                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">난이도</dt>
-                      <dd className="text-lg font-bold text-primary sm:text-2xl lg:text-3xl">{options.cefrLevel}</dd>
-                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">CEFR 레벨</dd>
+                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">검색 완료</dt>
+                      <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{searchedCount}개</dd>
+                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">뜻을 찾았어요</dd>
                     </div>
                     <div className="flex flex-col gap-1 rounded-lg border border-border/70 bg-card/90 p-2 shadow-md sm:gap-1.5 sm:p-4 lg:gap-2 lg:p-5">
-                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">상태</dt>
-                      <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{canGeneratePdf ? '완료' : '대기'}</dd>
-                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">{canGeneratePdf ? 'PDF를 다운받을 수 있어요' : '단어를 검색하면 만들어져요'}</dd>
+                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">제외</dt>
+                      <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{excludedCount}개</dd>
+                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">한글·중복 제외</dd>
                     </div>
                   </dl>
 
@@ -503,7 +548,7 @@ function App() {
                           onChange={(e) => setOptions({ ...options, layoutType: e.target.value })}
                           className="text-xs sm:text-sm"
                         >
-                          <option value="study">학습용 (원문 + 예문/번역)</option>
+                          <option value="study">학습용 (원문 + 뜻/유사표현)</option>
                           <option value="memorization">암기용 (원문 + 빈칸)</option>
                         </Select>
                       </div>

@@ -414,7 +414,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           className="text-xs transition-all hover:shadow-lg active:scale-95 sm:text-sm"
           aria-label="PDF 다운로드"
         >
-          📥 PDF 다운로드
+          PDF 다운로드
         </Button>
       </div>
 
