@@ -239,7 +239,7 @@ function App() {
                     className="flex-1"
                     size="lg"
                   >
-                    {loading ? '찾는 중이에요.' : '단��� 찾기'}
+                    {loading ? '찾는 중이에요.' : '단어 찾기'}
                   </Button>
 
                   <label htmlFor="file-upload" className="flex flex-1">
@@ -364,7 +364,7 @@ function App() {
                   <Card id="preview" className="border border-border/70 bg-card/90 shadow-xl">
                     <CardHeader>
                       <CardTitle className="text-xl font-semibold text-foreground">미리 보기</CardTitle>
-                      <CardDescription>PDF로 내보내기 전에 레이아웃을 확인하세요.</CardDescription>
+                      <CardDescription>PDF로 내��내기 전에 레이아웃을 확인하세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <PDFPreview
@@ -382,103 +382,19 @@ function App() {
       </main>
 
       <footer className="border-t border-border/60 bg-card/80">
-        <div className="mx-auto grid w-full max-w-6xl gap-10 px-6 py-12 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-md">VP</span>
-              <span className="text-base font-semibold text-foreground">VocaPDF</span>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              AI로 단어를 정리하고 PDF로 바로 내보내는 올인원 학습 도구입니다.
-            </p>
+        <div className="mx-auto flex w-full max-w-6xl flex-col items-start gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground text-sm font-semibold shadow-md">VP</span>
+            <span>© {currentYear} VocaPDF</span>
           </div>
-
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">제품</h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li><a href="#overview" className="transition hover:text-foreground">소개</a></li>
-              <li><a href="#workflow" className="transition hover:text-foreground">단어 입력</a></li>
-              <li><a href="#preview" className="transition hover:text-foreground">미리 보기</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">리소스</h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li>
-                <a
-                  href="https://www.builder.io/c/docs/projects"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-foreground"
-                >
-                  도움말 센터
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://tweakcn.com/themes/cmgl3a8v8000704ju4afr6mtb"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-foreground"
-                >
-                  테마 보기
-                </a>
-              </li>
-              <li><a href="#features" className="transition hover:text-foreground">��능 요약</a></li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">지원</h3>
-            <ul className="mt-3 space-y-2 text-sm text-muted-foreground">
-              <li><a href="mailto:support@vocapdf.com" className="transition hover:text-foreground">이메일 문의</a></li>
-              <li>
-                <a
-                  href="https://discord.com/invite"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-foreground"
-                >
-                  커뮤니티
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://github.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="transition hover:text-foreground"
-                >
-                  GitHub
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="border-t border-border/60 bg-card/70">
-          <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-6 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-            <p>© {currentYear} VocaPDF. 모든 권리 보유.</p>
-            <div className="flex flex-wrap gap-4">
-              <a
-                href="https://www.builder.io/legal/terms"
-                target="_blank"
-                rel="noreferrer"
-                className="transition hover:text-foreground"
-              >
-                이용 약관
-              </a>
-              <a
-                href="https://www.builder.io/legal/privacy"
-                target="_blank"
-                rel="noreferrer"
-                className="transition hover:text-foreground"
-              >
-                개인정보 보호
-              </a>
-            </div>
-          </div>
+          <a
+            href="https://github.com"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-2 rounded-md border border-border/80 bg-card px-4 py-2 text-sm font-semibold text-foreground transition hover:border-border hover:bg-secondary/60 hover:text-primary"
+          >
+            GitHub
+          </a>
         </div>
       </footer>
     </div>
