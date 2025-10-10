@@ -49,7 +49,7 @@ function App() {
     try {
       setLoading(true);
       setError(null);
-      setProgress('파일을 불러오는 중이에요');
+      setProgress('파일��� 불러오는 중이에요');
 
       const result = await uploadFile(file);
       setWords(result.data.words.join('\n'));
@@ -133,20 +133,14 @@ function App() {
               <span className="text-xs text-muted-foreground md:text-sm">AI Vocabulary Studio</span>
             </div>
           </a>
-          <nav className="flex flex-wrap items-center justify-end gap-2 text-sm font-medium text-muted-foreground">
-            <a href="#workflow" className="rounded-md px-3 py-2 transition hover:bg-secondary/70 hover:text-foreground">워크플로</a>
-            <a href="#features" className="rounded-md px-3 py-2 transition hover:bg-secondary/70 hover:text-foreground">기능</a>
-            <a href="#preview" className="rounded-md px-3 py-2 transition hover:bg-secondary/70 hover:text-foreground">미리보기</a>
+          <nav className="flex flex-wrap items-center justify-end gap-3">
             <Button
-              variant="ghost"
-              size="sm"
+              size="lg"
               onClick={() => wordInputRef.current?.focus()}
-              className="hidden sm:inline-flex"
+              className="word-entry-cta inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary via-primary/80 to-accent px-6 py-2 text-sm font-semibold text-primary-foreground shadow-lg shadow-primary/40 transition hover:from-primary/90 hover:via-primary hover:to-accent/90"
             >
-              단어 입력
-            </Button>
-            <Button size="sm" onClick={handleLookup} disabled={loading || !words.trim()}>
-              즉시 찾기
+              <span className="h-2 w-2 rounded-full bg-primary-foreground" />
+              <span>단어 입력</span>
             </Button>
           </nav>
         </div>
@@ -387,7 +381,7 @@ function App() {
                   <Card id="preview" className="border border-border/70 bg-card/90 shadow-xl">
                     <CardHeader>
                       <CardTitle className="text-xl font-semibold text-foreground">미리 보기</CardTitle>
-                      <CardDescription>PDF로 내보내기 전에 레이아웃을 확인하세요.</CardDescription>
+                      <CardDescription>PDF로 내보내�� 전에 레이아웃을 확인하세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <PDFPreview
