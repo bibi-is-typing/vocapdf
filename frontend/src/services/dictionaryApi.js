@@ -1,4 +1,14 @@
-import api from './api';
+import axios from 'axios';
+
+const API_BASE_URL = 'http://localhost:5001';
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 300000, // 5분 (단어 조회 시간 고려)
+  headers: {
+    'Content-Type': 'application/json'
+  }
+});
 
 /**
  * 단어 조회 API 호출

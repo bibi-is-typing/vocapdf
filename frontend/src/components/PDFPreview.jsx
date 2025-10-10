@@ -23,12 +23,8 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     );
   }
 
-  // 성공한 항목만 필터링
   const successData = useMemo(() => {
-    console.log('[PDFPreview] wordData 전체:', wordData);
-    console.log('[PDFPreview] wordData 개수:', wordData.length);
     const filtered = wordData.filter(item => !item.error);
-    console.log('[PDFPreview] 에러 없는 항목:', filtered.length);
     return filtered;
   }, [wordData]);
 
@@ -70,18 +66,14 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   const ITEMS_PER_PAGE = 20;
 
   const paginatedData = useMemo(() => {
-    console.log('[PDFPreview] organizedData:', organizedData);
     if (options.outputFormat === 'input-order') {
       const chunks = [];
       const items = organizedData.all || [];
-      console.log('[PDFPreview] input-order 모드, items 개수:', items.length);
       for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
         chunks.push(items.slice(i, i + ITEMS_PER_PAGE));
       }
-      console.log('[PDFPreview] 페이지 수:', chunks.length);
       return chunks.length > 0 ? chunks : [[]];
     } else {
-      // grouped 모드: 타입별로 페이지네이션 적용 (단순화: 첫 페이지에 모두 표시)
       return [[organizedData]];
     }
   }, [organizedData, options.outputFormat]);

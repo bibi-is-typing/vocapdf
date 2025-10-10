@@ -80,34 +80,6 @@ function extractArray(array, count) {
 }
 
 /**
- * 여러 definition에서 유의어/반의어를 수집
- * (단어에 따라 여러 definition에 분산되어 있을 수 있음)
- *
- * @param {Array} definitions - definition 배열
- * @param {number} count - 추출할 개수
- * @param {string} type - 'synonyms' 또는 'antonyms'
- * @returns {Array} 수집된 배열
- */
-function collectFromDefinitions(definitions, count, type) {
-  const collected = [];
-
-  for (const def of definitions) {
-    if (!def[type]) continue;
-
-    for (const item of def[type]) {
-      if (collected.length >= count) break;
-      if (!collected.includes(item)) {
-        collected.push(item);
-      }
-    }
-
-    if (collected.length >= count) break;
-  }
-
-  return collected;
-}
-
-/**
  * API 응답이 올바른 형식인지 검증
  *
  * @param {*} data - 검증할 데이터
@@ -227,7 +199,5 @@ module.exports = {
   extractMeanings,
   extractMeaningsFromClaude,
   extractMeaningsFromOxford,
-  extractArray,
-  collectFromDefinitions,
   validateApiResponse
 };

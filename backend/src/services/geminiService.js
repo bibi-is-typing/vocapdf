@@ -147,16 +147,11 @@ Provide ${options.meanings || 2} meanings if available. If you don't know the wo
 
     // 문장 예시의 경우
     if (type === 'sentence') {
-      // JSON 응답 파싱
       let jsonData;
       try {
-        // 마크다운 코드 블록 제거 (```json ... ```)
         const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         jsonData = JSON.parse(cleanedContent);
       } catch (parseError) {
-        console.error('Gemini API JSON parsing error for sentence:', parseError);
-        console.error('Raw content:', content);
-        // 파싱 실패 시 빈 배열 반환
         return {
           original: input,
           examples: [],
@@ -171,15 +166,11 @@ Provide ${options.meanings || 2} meanings if available. If you don't know the wo
       };
     }
 
-    // JSON 응답 파싱 (단어/숙어)
     let jsonData;
     try {
-      // 마크다운 코드 블록 제거 (```json ... ```)
       const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       jsonData = JSON.parse(cleanedContent);
     } catch (parseError) {
-      console.error('Gemini API JSON parsing error:', parseError);
-      console.error('Raw content:', content);
       throw new Error('Failed to parse Gemini API response');
     }
 
@@ -191,7 +182,6 @@ Provide ${options.meanings || 2} meanings if available. If you don't know the wo
     return jsonData;
 
   } catch (error) {
-    console.error(`Gemini API error for "${input}":`, error.message);
     throw error;
   }
 }
@@ -289,16 +279,12 @@ async function fetchFromGeminiWithRetry(input, type, options) {
         throw error;
       }
 
-      // 마지막 시도가 아니면 재시도
       if (attempt < MAX_RETRIES) {
-        console.log(`Retrying Gemini API for "${input}" (attempt ${attempt + 1}/${MAX_RETRIES})...`);
-        await sleep(500); // 0.5초 대기
+        await sleep(500);
       }
     }
   }
 
-  // 모든 재시도 실패
-  console.error(`All Gemini API retries failed for "${input}"`);
   throw lastError;
 }
 

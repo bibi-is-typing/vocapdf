@@ -16,11 +16,6 @@ app.use(cors()); // CORS 허용
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 파싱
 
-// 요청 로깅 (개발 환경)
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {

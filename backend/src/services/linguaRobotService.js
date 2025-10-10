@@ -67,7 +67,6 @@ async function fetchFromLinguaRobot(input, type) {
       return null;
     }
 
-    console.error(`Lingua Robot API error for "${input}":`, error.message);
     throw error;
   }
 }
@@ -94,16 +93,12 @@ async function fetchFromLinguaRobotWithRetry(input, type) {
         throw error;
       }
 
-      // 마지막 시도가 아니면 대기 후 재시도
       if (attempt < MAX_RETRIES) {
-        console.log(`Retrying "${input}" (attempt ${attempt + 1}/${MAX_RETRIES})...`);
         await sleep(RETRY_DELAY);
       }
     }
   }
 
-  // 모든 재시도 실패
-  console.error(`All retries failed for "${input}"`);
   throw lastError;
 }
 

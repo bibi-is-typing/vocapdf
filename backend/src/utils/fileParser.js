@@ -47,24 +47,8 @@ function parseTextFile(content, filename) {
  * @returns {Array<string>} 정제된 단어 배열
  */
 function sanitizeWords(words) {
-  console.log('🔍 [fileParser] 원본 입력:', words.slice(0, 10));
-
-  // 중복 제거 (대소문자 구분 유지 - 문장 감지를 위해)
   const uniqueWords = [...new Set(words)];
-
-  // 영문자, 공백, 구두점 포함 (숙어/문장 지원)
-  // 변경 전: /^[a-z]+$/ (단어만)
-  // 변경 후: /^[a-zA-Z\s.!?,'-]+$/ (단어+숙어+문장)
   const validWords = uniqueWords.filter((word) => /^[a-zA-Z\s.!?,'-]+$/.test(word));
-
-  console.log('✅ [fileParser] 정제된 입력:', validWords.slice(0, 10));
-  console.log('📊 [fileParser] 통계:', {
-    원본개수: words.length,
-    중복제거후: uniqueWords.length,
-    유효한입력: validWords.length,
-    제거된개수: words.length - validWords.length
-  });
-
   return validWords;
 }
 

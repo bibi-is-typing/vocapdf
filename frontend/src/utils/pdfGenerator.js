@@ -7,20 +7,13 @@ import autoTable from 'jspdf-autotable';
  * @param {Object} options - 옵션 설정
  */
 export const generatePDF = (wordData, options) => {
-  console.log('[pdfGenerator] 함수 시작');
-  console.log('[pdfGenerator] wordData:', wordData?.length, 'items');
-  console.log('[pdfGenerator] options:', options);
-
   try {
-    // 1. PDF 문서 생성
-    console.log('[pdfGenerator] jsPDF 생성 중...');
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
       format: 'a4',
       compress: true
     });
-    console.log('[pdfGenerator] jsPDF 생성 완료');
 
     // 2. 기본 폰트 설정 (helvetica)
     doc.setFont('helvetica');
@@ -56,21 +49,13 @@ export const generatePDF = (wordData, options) => {
     generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRight, marginTop, marginBottom, drawCheckbox);
   }
 
-  // 페이지 번호 추가
-  console.log('[pdfGenerator] 페이지 번호 추가 중...');
   addPageNumbers(doc);
-  console.log('[pdfGenerator] 페이지 번호 추가 완료');
 
-  // 저장
   const filename = `vocapdf_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}.pdf`;
-  console.log('[pdfGenerator] PDF 저장 시작:', filename);
   doc.save(filename);
-  console.log('[pdfGenerator] PDF 저장 완료');
 
   return { success: true, filename };
   } catch (error) {
-    console.error('[pdfGenerator] 에러 발생:', error);
-    console.error('[pdfGenerator] 에러 스택:', error.stack);
     throw error;
   }
 };

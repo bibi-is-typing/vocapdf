@@ -10,7 +10,7 @@
 
 ### Base URL
 
--   **개발 환경**: `http://localhost:5000`
+-   **개발 환경**: `http://localhost:5001`
 -   **프로덕션 환경**: `https://api.vocapdf.com` (도메인 연결 시)
 
 ### 공통 헤더
@@ -166,7 +166,7 @@
 
 -   **정상 케이스 (다의어 포함)**:
     ```bash
-    curl -X POST http://localhost:5000/api/dictionary/lookup \
+    curl -X POST http://localhost:5001/api/dictionary/lookup \
       -H "Content-Type: application/json" \
       -d '{
         "words": ["apple", "bank"],
@@ -176,7 +176,7 @@
 
 -   **에러 케이스 (단어 개수 초과)**:
     ```bash
-    curl -X POST http://localhost:5000/api/dictionary/lookup \
+    curl -X POST http://localhost:5001/api/dictionary/lookup \
       -H "Content-Type: application/json" \
       -d '{
         "words": ["word1", "word2", ..., "word501"],
