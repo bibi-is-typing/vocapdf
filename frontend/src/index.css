@@ -66,7 +66,7 @@
   }
 
   a {
-    @apply font-medium text-blue-600 no-underline hover:text-blue-700;
+    @apply font-medium text-accent no-underline transition hover:text-primary;
   }
 
   h1 {
