@@ -243,7 +243,7 @@ function App() {
                   </Button>
 
                   <label htmlFor="file-upload" className="flex flex-1">
-                    <span className="upload-trigger inline-flex w-full items-center justify-center rounded-md border border-dashed border-primary/40 bg-secondary/50 px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary hover:bg-secondary/70 hover:text-primary-foreground hover:shadow-lg">
+                    <span className="upload-trigger inline-flex w-full items-center justify-center rounded-md border border-dashed border-primary/40 bg-secondary/50 px-4 py-3 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary hover:text-primary-foreground hover:shadow-lg focus-visible:border-primary focus-visible:bg-primary focus-visible:text-primary-foreground">
                       📁 txt · csv · md 업로드
                     </span>
                     <Input
@@ -290,7 +290,7 @@ function App() {
                   {options.cefrLevel !== appliedCefrLevel && (
                     <Alert variant="warning" className="border border-accent/40 bg-accent/10">
                       <AlertDescription className="text-sm text-foreground">
-                        <p className="font-medium">선택한 수준이 바뀌었어요. 새 레벨로 다시 조회해 주세요.</p>
+                        <p className="font-medium">선택한 수준이 ��뀌었어요. 새 레벨로 다시 조회해 주세요.</p>
                         <Button
                           onClick={handleLookup}
                           disabled={loading}
@@ -364,7 +364,7 @@ function App() {
                   <Card id="preview" className="border border-border/70 bg-card/90 shadow-xl">
                     <CardHeader>
                       <CardTitle className="text-xl font-semibold text-foreground">미리 보기</CardTitle>
-                      <CardDescription>PDF로 내��내기 전에 레이아웃을 확인하세요.</CardDescription>
+                      <CardDescription>PDF로 내보내기 전에 레이아웃을 확인하세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <PDFPreview
