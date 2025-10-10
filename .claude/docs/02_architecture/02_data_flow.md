@@ -36,137 +36,48 @@
 
 ### 텍스트 입력
 
--   **입력 데이터**:
-    ```
-    apple
-    banana
-    computer
-    ```
--   **처리 과정**:
-    ```javascript
-    // 프론트엔드
-    const inputText = "apple\nbanana\ncomputer";
-    ```
+사용자가 텍스트 영역에 단어를 입력하거나 파일을 업로드합니다.
 
-### 파일 업로드
-
--   **파일 내용 (`words.txt`)**:
-    ```
-    apple
-    banana
-    computer
-    ```
--   **처리 과정**:
-    ```javascript
-    // 프론트엔드
-    const file = event.target.files[0];
-    const text = await file.text();
-    ```
+**예시**:
+```
+apple
+banana
+computer
+```
 
 ---
 
 ## 2️⃣ 입력 처리 및 검증
 
-### 파싱
+### 파싱 및 검증
 
--   **입력 텍스트 → 단어 배열** (줄바꿈 기준):
-    ```javascript
-    // utils/fileParser.js
-    const words = inputText
-      .split('\n')
-      .map(word => word.trim())
-      .filter(word => word.length > 0);
+입력 텍스트를 줄바꿈 또는 쉼표 기준으로 분리하여 단어 배열로 변환합니다.
 
-    // 결과: ["apple", "banana", "computer"]
-    ```
--   **쉼표로 구분된 경우**:
-    ```javascript
-    const input = "apple, banana, computer";
-    const words = input
-      .split(',')
-      .map(word => word.trim())
-      .filter(word => word.length > 0);
+**결과**: `["apple", "banana", "computer"]`
 
-    // 결과: ["apple", "banana", "computer"]
-    ```
-
-### 검증
-
--   **클라이언트 측 검증**:
-    ```javascript
-    // 1. 단어 개수 체크
-    if (words.length === 0) {
-      throw new Error("단어를 입력해주세요");
-    }
-    if (words.length > 500) {
-      throw new Error("최대 500개까지 입력 가능합니다");
-    }
-
-    // 2. 경고 메시지
-    if (words.length > 300) {
-      showWarning("처리 시간이 오래 걸릴 수 있습니다");
-    }
-    ```
+**검증 규칙**:
+- 빈 단어 제거
+- 최대 500개 제한
+- 300개 이상 시 경고 메시지
 
 ---
 
 ## 3️⃣ 옵션 선택
 
-### 옵션 상태
+### 옵션 선택
 
--   **사용자 선택 값**:
-    ```javascript
-    const options = {
-      meanings: 2,        // 의미 개수
-      definitions: 1,     // 영영뜻 개수
-      synonyms: 2,        // 유의어 개수
-      antonyms: 0,        // 반의어 개수
-      related: 2,         // 관계어 개수
-      checkbox: true,     // 체크박스 추가
-      date: false         // 날짜 표시
-    };
-    ```
+사용자가 PDF 생성에 필요한 옵션을 선택합니다:
+- 의미 개수 (1-2개)
+- 영영뜻/유의어/반의어/관계어 개수 (0-2개)
+- 체크박스/날짜 표시 여부
 
 ---
 
 ## 4️⃣ 백엔드 API 호출
 
-### 요청 데이터 구성
+### API 요청
 
--   **프론트엔드 → 백엔드**:
-    ```javascript
-    // services/api.js
-    const requestData = {
-      words: ["apple", "banana", "computer"],
-      options: {
-        meanings: 2,
-        definitions: 1,
-        synonyms: 2,
-        antonyms: 0,
-        related: 2
-      }
-    };
-
-    const response = await axios.post(
-      'http://localhost:5000/api/dictionary/lookup',
-      requestData
-    );
-    ```
-
-### 백엔드 요청 수신
-
--   **백엔드 라우트**:
-    ```javascript
-    // routes/dictionary.js
-    router.post('/lookup', async (req, res) => {
-      const { words, options } = req.body;
-      
-      // 서비스 호출
-      const result = await dictionaryService.lookupWords(words, options);
-      
-      res.json(result);
-    });
-    ```
+프론트엔드가 단어 배열과 옵션을 백엔드 API(`POST /api/dictionary/lookup`)로 전송합니다.
 
 ---
 
@@ -174,33 +85,10 @@
 
 ### 단어별 조회
 
--   **백엔드 → Free Dictionary API**:
-    ```javascript
-    // services/dictionaryService.js
-    async function lookupWords(words, options) {
-      const results = [];
-      for (const word of words) {
-        try {
-          // API 호출
-          const response = await axios.get(
-            `https://api.dictionaryapi.dev/api/v2/entries/en/${word}`
-          );
-          
-          // 데이터 처리
-          const processed = processWordData(response.data, options);
-          results.push(processed);
+백엔드가 각 단어를 Lingua Robot API 또는 Free Dictionary API로 조회합니다.
 
-        } catch (error) {
-          // 단어를 찾을 수 없는 경우
-          results.push({
-            word: word,
-            error: "사전에서 찾을 수 없습니다"
-          });
-        }
-      }
-      return results;
-    }
-    ```
+**성공 시**: 의미, 정의, 유의어 등 데이터 반환
+**실패 시**: 에러 메시지와 함께 반환
 
 ### API 응답 예시
 
@@ -243,53 +131,9 @@
 
 ### 의미별 정보 추출
 
--   **다의어 처리 로직**:
-    ```javascript
-    // utils/meaningExtractor.js
-    function extractMeanings(apiData, options) {
-      const word = apiData.word;
-      const meanings = apiData.meanings;
-      const result = {
-        word: word,
-        meanings: []
-      };
-
-      // 의미 개수만큼 추출 (옵션 값과 실제 데이터 중 작은 값 기준)
-      const maxMeanings = Math.min(options.meanings, meanings.length);
-
-      for (let i = 0; i < maxMeanings; i++) {
-        const meaning = meanings[i];
-        const def = meaning.definitions[0]; // 각 의미의 첫 번째 definition 사용
-        
-        result.meanings.push({
-          meaningNumber: i + 1,
-          definition: def.definition,
-          synonyms: extractSynonyms(def, options.synonyms),
-          antonyms: extractAntonyms(def, options.antonyms),
-          related: extractRelated(def, options.related) // 'related'는 별도 로직 필요
-        });
-      }
-      return result;
-    }
-    ```
-
-### 유의어/반의어 추출
-
--   **개수 제한 적용**:
-    ```javascript
-    // utils/meaningExtractor.js
-    function extractSynonyms(definition, count) {
-      if (count === 0) return [];
-      const synonyms = definition.synonyms || [];
-      return synonyms.slice(0, count); // 요청 개수만큼만 반환
-    }
-
-    function extractAntonyms(definition, count) {
-      if (count === 0) return [];
-      const antonyms = definition.antonyms || [];
-      return antonyms.slice(0, count);
-    }
-    ```
+API 응답에서 사용자가 선택한 옵션에 맞게 데이터를 추출합니다:
+- 의미 개수만큼 분리
+- 각 의미별로 유의어/반의어 추출 (요청 개수만큼만)
 
 ### 가공된 데이터 구조
 
@@ -320,51 +164,11 @@
 
 ## 7️⃣ 프론트엔드 응답 수신
 
-### 백엔드 응답
+### 응답 수신
 
--   **전체 응답 구조**:
-    ```json
-    {
-      "success": true,
-      "data": [
-        {
-          "word": "apple",
-          "meanings": [...]
-        },
-        {
-          "word": "banana",
-          "meanings": [...]
-        },
-        {
-          "word": "computer",
-          "meanings": [...]
-        }
-      ]
-    }
-    ```
+백엔드가 처리된 데이터를 프론트엔드로 반환합니다.
 
-### 프론트엔드에서 수신
-
--   **상태 업데이트**:
-    ```javascript
-    // components/PDFGenerator.jsx
-    const [wordData, setWordData] = useState([]);
-    const [loading, setLoading] = useState(false);
-
-    const fetchWordData = async () => {
-      setLoading(true);
-      try {
-        const response = await api.lookupWords(words, options);
-        if (response.success) {
-          setWordData(response.data);
-        }
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    ```
+**응답 구조**: 단어 배열, 각 단어는 의미별 정보 포함
 
 ---
 
@@ -372,97 +176,21 @@
 
 ### jsPDF 변환
 
-`jspdf`와 `jspdf-autotable` 라이브러리를 사용해 동적으로 테이블 데이터를 구성하고 PDF를 생성합니다.
+`jspdf`와 `jspdf-autotable`로 받은 데이터를 PDF 테이블로 변환합니다.
 
-```javascript
-// utils/pdfGenerator.js
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-
-function generatePDF(wordData, options) {
-  const doc = new jsPDF({
-    orientation: 'portrait',
-    unit: 'mm',
-    format: 'a4'
-  });
-
-  // 날짜 표시 (옵션)
-  if (options.date) {
-    const today = new Date().toISOString().split('T')[0];
-    doc.text(`학습일: ${today}`, 15, 15);
-  }
-
-  // 테이블 헤더
-  const headers = [];
-  if (options.checkbox) headers.push('☐');
-  headers.push('단어', '의미', '영영뜻');
-  if (options.synonyms > 0) headers.push('유의어');
-  if (options.antonyms > 0) headers.push('반의어');
-  if (options.related > 0) headers.push('관계어');
-
-  // 테이블 데이터
-  const body = [];
-  for (const item of wordData) {
-    for (let i = 0; i < item.meanings.length; i++) {
-      const meaning = item.meanings[i];
-      const row = [];
-
-      if (options.checkbox) row.push('');
-      row.push(i === 0 ? item.word : ''); // 첫 번째 의미에만 단어 표시
-      row.push(meaning.meaningNumber);
-      row.push(meaning.definition);
-      if (options.synonyms > 0) row.push(meaning.synonyms.join(', ') || '-');
-      if (options.antonyms > 0) row.push(meaning.antonyms.join(', ') || '-');
-      if (options.related > 0) row.push(meaning.related.join(', ') || '-');
-      
-      body.push(row);
-    }
-  }
-
-  // autoTable로 테이블 생성
-  doc.autoTable({
-    head: [headers],
-    body: body,
-    startY: options.date ? 20 : 15
-  });
-
-  return doc;
-}
-```
+**처리 과정**:
+1. 옵션에 따라 테이블 헤더 구성
+2. 각 단어의 의미별로 행 생성
+3. 다의어는 셀 병합 처리
+4. 페이지 자동 나누기
 
 ---
 
 ## 9️⃣ 다운로드
 
-### 파일명 생성
+### 파일 다운로드
 
-타임스탬프를 포함하여 고유한 파일명을 생성합니다.
-
-```javascript
-function generateFileName() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  const hours = String(now.getHours()).padStart(2, '0');
-  const minutes = String(now.getMinutes()).padStart(2, '0');
-  const seconds = String(now.getSeconds()).padStart(2, '0');
-  
-  return `vocapdf_${year}${month}${day}_${hours}${minutes}${seconds}.pdf`;
-  // 예: vocapdf_20251009_193552.pdf
-}
-```
-
-### PDF 다운로드
-
-생성된 PDF 문서를 브라우저에서 자동으로 다운로드합니다.
-
-```javascript
-function downloadPDF(doc) {
-  const fileName = generateFileName();
-  doc.save(fileName);
-}
-```
+타임스탬프를 포함한 파일명(`vocapdf_YYYYMMDD_HHMMSS.pdf`)으로 자동 다운로드됩니다.
 
 ---
 

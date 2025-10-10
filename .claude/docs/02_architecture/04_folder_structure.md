@@ -32,17 +32,15 @@ frontend/
 ├── public/               # 정적 파일 (빌드 시 그대로 복사됨)
 │
 ├── src/                  # 소스 코드 루트
-│   ├── components/       # 재사용 가능한 React 컴포넌트
+│   ├── assets/           # 정적 리소스 (이미지, 아이콘 등)
 │   ├── services/         # API 통신 및 외부 서비스 연동
 │   ├── utils/            # 순수 함수 유틸리티
-│   ├── hooks/            # 커스텀 React Hooks
-│   ├── styles/           # 전역 스타일시트
 │   ├── App.jsx           # 메인 애플리케이션 컴포넌트
-│   ├── main.jsx          # 애플리케이션 진입점 (Entry Point)
-│   └── ...
+│   ├── App.css           # App 컴포넌트 스타일
+│   ├── index.css         # 전역 스타일시트
+│   └── main.jsx          # 애플리케이션 진입점 (Entry Point)
 │
-├── .eslintrc.js          # ESLint 설정
-├── .prettierrc           # Prettier 설정
+├── eslint.config.js      # ESLint 설정
 ├── index.html            # HTML 템플릿
 ├── package.json          # 프로젝트 의존성 및 스크립트
 ├── vite.config.js        # Vite 설정
@@ -51,16 +49,14 @@ frontend/
 
 ### 주요 폴더 상세 설명
 
-#### `components/`
+#### `assets/`
 
--   UI를 구성하는 독립적인 컴포넌트들을 기능 단위로 그룹화합니다.
--   **예시**:
+-   정적 리소스 파일을 저장합니다.
+-   이미지, 아이콘, 로고 등이 포함됩니다.
+-   **현재 구조**:
     ```
-    components/
-    ├── WordInput/        # 단어 입력 (텍스트, 파일) 관련 컴포넌트
-    ├── OptionsPanel/     # PDF 생성 옵션 패널 컴포넌트
-    ├── PDFPreview/       # 생성 전 PDF 미리보기 모달 컴포넌트
-    └── PDFGenerator/     # PDF 생성 및 다운로드 버튼 컴포넌트
+    assets/
+    └── react.svg         # React 로고
     ```
 
 #### `services/`
@@ -93,40 +89,10 @@ frontend/
 #### `utils/`
 
 -   애플리케이션 전반에서 사용되는 순수 함수들을 모아둡니다.
-    -   `pdfGenerator.js`: `jsPDF`를 사용하여 PDF 문서를 생성하는 로직.
-    -   `fileParser.js`: 업로드된 텍스트 파일을 파싱하여 단어 배열로 변환하는 로직.
-    -   `dataFormatter.js`: API 응답 데이터를 UI에 맞게 가공하는 로직.
-
-#### `hooks/`
-
--   상태 관련 로직을 분리하여 재사용하기 위한 커스텀 훅을 정의합니다.
--   **`useWordLookup.js`**: 단어 조회 API 호출과 관련된 상태(로딩, 데이터, 에러)를 관리합니다.
-    ```javascript
-    // hooks/useWordLookup.js
-    import { useState } from 'react';
-    import { lookupWords } from '../services/dictionaryApi';
-
-    export const useWordLookup = () => {
-      const [loading, setLoading] = useState(false);
-      const [data, setData] = useState(null);
-      const [error, setError] = useState(null);
-
-      const lookup = async (words, options) => {
-        setLoading(true);
-        setData(null);
-        setError(null);
-        try {
-          const result = await lookupWords(words, options);
-          setData(result);
-        } catch (err) {
-          setError(err);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      return { lookup, loading, data, error };
-    };
+-   **현재 구조**:
+    ```
+    utils/
+    └── pdfGenerator.js   # jsPDF를 사용한 PDF 생성 로직
     ```
 
 ---
@@ -208,13 +174,10 @@ backend/
 #### `config/`
 
 -   애플리케이션에서 사용되는 상수 값을 관리합니다.
-    ```javascript
-    // config/constants.js
-    module.exports = {
-      MAX_WORDS: 500,
-      MAX_FILE_SIZE: 5 * 1024 * 1024, // 5MB
-      PORT: process.env.PORT || 5000
-    };
+-   **현재 구조**:
+    ```
+    config/
+    └── constants.js      # 시스템 상수 정의
     ```
 
 ---
@@ -240,13 +203,56 @@ backend/
 
 ---
 
+## 🔄 실제 프로젝트 구조 (v0.2.0 기준)
+
+### 프론트엔드 (`frontend/src/`)
+
+```
+src/
+├── assets/
+│   └── react.svg
+├── services/
+│   ├── api.js
+│   └── dictionaryApi.js
+├── utils/
+│   └── pdfGenerator.js
+├── App.jsx
+├── App.css
+├── index.css
+└── main.jsx
+```
+
+### 백엔드 (`backend/src/`)
+
+```
+src/
+├── config/
+│   └── constants.js
+├── middleware/
+│   └── errorHandler.js
+├── routes/
+│   ├── dictionary.js
+│   └── upload.js
+├── services/
+│   ├── dictionaryService.js
+│   └── linguaRobotService.js
+├── utils/
+│   ├── fileParser.js
+│   ├── inputTypeDetector.js
+│   └── meaningExtractor.js
+└── server.js
+```
+
+---
+
 ## 🔄 확장 시 추가 폴더 (Phase 2 이후)
 
 ### 프론트엔드
 
+-   `src/components/`: 재사용 가능한 React 컴포넌트
+-   `src/hooks/`: 커스텀 React Hooks
 -   `src/store/`: Zustand, Redux 등 전역 상태 관리
 -   `src/types/`: TypeScript 타입 정의
--   `src/constants/`: 프론트엔드 전용 상수
 
 ### 백엔드
 

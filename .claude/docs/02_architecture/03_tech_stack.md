@@ -327,15 +327,6 @@
 
 ---
 
-## 🚫 사용하지 않는 기술
-
--   **데이터베이스** (e.g., MongoDB, PostgreSQL): MVP 단계에서는 상태 없이(Stateless) 동작하므로 불필요. 향후 사용자 데이터 저장 시 도입 예정.
--   **전역 상태 관리 라이브러리** (e.g., Redux, Zustand): 현재는 컴포넌트의 로컬 상태(useState)와 Props 전달로 충분.
--   **CSS 프레임워크** (e.g., Tailwind, Bootstrap): 프로젝트 규모가 작아 CSS Modules로 직접 스타일링.
--   **TypeScript**: 빠른 MVP 개발을 위해 JavaScript를 선택. 프로젝트 안정화 이후 점진적 도입 고려.
-
----
-
 ## 📊 기술 선택 기준
 
 1.  **단순함**: 학습 곡선이 낮고 직관적인 기술을 우선.
