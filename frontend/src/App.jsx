@@ -49,7 +49,7 @@ function App() {
     try {
       setLoading(true);
       setError(null);
-      setProgress('파일��� 불러오는 중이에요');
+      setProgress('파일을 불러오는 중이에요');
 
       const result = await uploadFile(file);
       setWords(result.data.words.join('\n'));
@@ -185,23 +185,6 @@ function App() {
                 </div>
               </dl>
             </div>
-            <div className="grid w-full max-w-sm gap-4 rounded-2xl border border-dashed border-border/70 bg-card/70 p-6 shadow-xl">
-              <h2 className="text-base font-semibold text-foreground">즉시 활용 가능한 기능</h2>
-              <ul className="space-y-3 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                  <span>Lingua Robot와 Free Dictionary를 활용한 하이브리드 사전 조회</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                  <span>PDF 레이아웃을 학습용 또는 암기용으로 즉시 전환</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-primary" />
-                  <span>체크박스와 번호 표시 옵션으로 진도 관리 강화</span>
-                </li>
-              </ul>
-            </div>
           </div>
         </section>
 
@@ -256,7 +239,7 @@ function App() {
                     className="flex-1"
                     size="lg"
                   >
-                    {loading ? '찾는 중이에요.' : '단어 찾기'}
+                    {loading ? '찾는 중이에요.' : '단��� 찾기'}
                   </Button>
 
                   <label htmlFor="file-upload" className="flex flex-1">
@@ -381,7 +364,7 @@ function App() {
                   <Card id="preview" className="border border-border/70 bg-card/90 shadow-xl">
                     <CardHeader>
                       <CardTitle className="text-xl font-semibold text-foreground">미리 보기</CardTitle>
-                      <CardDescription>PDF로 내보내�� 전에 레이아웃을 확인하세요.</CardDescription>
+                      <CardDescription>PDF로 내보내기 전에 레이아웃을 확인하세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="pt-6">
                       <PDFPreview
@@ -442,7 +425,7 @@ function App() {
                   테마 보기
                 </a>
               </li>
-              <li><a href="#features" className="transition hover:text-foreground">기능 요약</a></li>
+              <li><a href="#features" className="transition hover:text-foreground">��능 요약</a></li>
             </ul>
           </div>
 
