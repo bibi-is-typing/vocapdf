@@ -12,23 +12,26 @@ const uploadRoutes = require('./routes/upload');
 const app = express();
 
 // 미들웨어 설정
-// CORS 설정 - .env에서 허용된 도메인만
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
+// CORS 설정
+const allowedOrigins = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:8080'];
+  : ['https://vocapdf.com'];
 
 app.use(cors({
   origin: function(origin, callback) {
-    // origin이 없는 경우 허용 (모바일 앱, Postman 등)
+    // origin이 없는 경우 허용 (서버 간 통신, curl 등)
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
+      console.log('CORS blocked origin:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 파싱

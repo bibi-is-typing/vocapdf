@@ -250,11 +250,16 @@ function App() {
 
       <header className="app-header border-b border-border/60 bg-card/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
-          <a href="#overview" className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground text-lg font-semibold shadow-md shadow-primary/40">VP</span>
+          <a href="/" className="flex items-center gap-3">
+            <div className="inline-flex items-center justify-center">
+                <img 
+                src="/vocapdf_logo.png" 
+                alt="VocaPDF" 
+                className="h-10 w-auto sm:h-16 md:h-20"
+                />
+            </div>
             <div className="flex flex-col">
-              <span className="text-base font-semibold tracking-tight md:text-lg">VocaPDF</span>
-              <span className="text-xs text-muted-foreground md:text-sm">AI 영어 단어장 메이커</span>
+              <span className="text-xl sm:text-2xl md:text-3xl text-muted-foreground">AI 단어장 메이커</span>
             </div>
           </a>
           <nav className="flex flex-wrap items-center justify-end gap-3">
@@ -616,7 +621,15 @@ function App() {
             {/* 상단: 로고와 GitHub 링크 */}
             <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-md sm:h-9 sm:w-9 sm:text-sm">VP</span>
+                <div className="inline-flex items-center justify-center">
+                  <img 
+                  src="/vocapdf_logo.png" 
+                  alt="VocaPDF" 
+                  className="h-10 w-auto"
+                  />
+                </div>
+
+                {/* <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-md sm:h-9 sm:w-9 sm:text-sm">VP</span> */}
                 <span>© {currentYear} VocaPDF</span>
               </div>
               <a
