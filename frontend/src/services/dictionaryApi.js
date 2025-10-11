@@ -17,7 +17,7 @@ const api = axios.create({
  * @returns {Promise} API 응답
  */
 export const lookupWords = async (words, options) => {
-  const response = await api.post('/api/dictionary/lookup', {
+  const response = await api.post('/dictionary/lookup', {
     words,
     options
   });
@@ -33,7 +33,7 @@ export const uploadFile = async (file) => {
   const formData = new FormData();
   formData.append('file', file);
 
-  const response = await api.post('/api/upload', formData, {
+  const response = await api.post('/upload', formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }

@@ -12,7 +12,24 @@ const uploadRoutes = require('./routes/upload');
 const app = express();
 
 // 미들웨어 설정
-app.use(cors()); // CORS 허용
+// CORS 설정 - .env에서 허용된 도메인만
+const allowedOrigins = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:8080'];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // origin이 없는 경우 허용 (모바일 앱, Postman 등)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 파싱
 
@@ -27,8 +44,8 @@ app.get('/health', (req, res) => {
 });
 
 // API 라우트 등록
-app.use('/api/dictionary', dictionaryRoutes);
-app.use('/api/upload', uploadRoutes);
+app.use('/dictionary', dictionaryRoutes);
+app.use('/upload', uploadRoutes);
 
 // 404 핸들러 (등록된 라우트가 없는 경우)
 app.use(notFoundHandler);

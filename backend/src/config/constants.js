@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 module.exports = {
-  PORT: process.env.PORT || 5000,
+  PORT: process.env.PORT || 5001,
   MAX_WORDS: 500,
   MAX_FILE_SIZE: parseInt(process.env.MAX_FILE_SIZE) || 5 * 1024 * 1024, // 5MB
 
