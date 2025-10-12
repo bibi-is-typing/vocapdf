@@ -435,13 +435,13 @@ function App() {
                           파일 업로드
                         </span>
                         <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 hidden w-max -translate-x-1/2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[10px] text-foreground shadow-lg group-hover:block sm:text-xs">
-                          txt, csv, md 파일 지원
+                          txt, csv, numbers 파일 지원
                         </span>
                         <Input
                           ref={fileInputRef}
                           id="file-upload"
                           type="file"
-                          accept=".txt,.csv,.md"
+                          accept=".txt,.csv,.numbers"
                           onChange={handleFileUpload}
                           disabled={canGeneratePdf}
                           className="sr-only absolute -z-10 h-0 w-0 opacity-0"

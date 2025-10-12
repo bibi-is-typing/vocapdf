@@ -5,7 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { MAX_FILE_SIZE } = require('../config/constants');
 const { AppError } = require('../middleware/errorHandler');
-const { parseTextFile, sanitizeWords } = require('../utils/fileParser');
+const { parseTextFile, parseNumbersFile, sanitizeWords } = require('../utils/fileParser');
 
 // Multer 설정 (메모리 저장소 사용 - 임시 파일 불필요)
 const storage = multer.memoryStorage();
@@ -16,7 +16,7 @@ const upload = multer({
     fileSize: MAX_FILE_SIZE
   },
   fileFilter: (req, file, cb) => {
-    const allowedExtensions = ['.txt', '.csv', '.md'];
+    const allowedExtensions = ['.txt', '.csv', '.numbers'];
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (allowedExtensions.includes(ext)) {
@@ -37,11 +37,18 @@ router.post('/', upload.single('file'), async (req, res, next) => {
       throw new AppError('파일이 업로드되지 않았습니다', 400, 'INVALID_REQUEST');
     }
 
-    // 파일 내용을 문자열로 변환
-    const content = req.file.buffer.toString('utf-8');
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    let words;
 
-    // 단어 추출
-    const words = parseTextFile(content, req.file.originalname);
+    // 파일 형식에 따라 다른 파싱 방식 사용
+    if (ext === '.numbers') {
+      // Numbers 파일은 바이너리이므로 buffer를 직접 전달
+      words = parseNumbersFile(req.file.buffer);
+    } else {
+      // 텍스트 파일은 문자열로 변환
+      const content = req.file.buffer.toString('utf-8');
+      words = parseTextFile(content, req.file.originalname);
+    }
 
     // 단어 정제
     const sanitized = sanitizeWords(words);
