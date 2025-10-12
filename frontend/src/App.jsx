@@ -52,21 +52,15 @@ function App() {
     if (!file) return;
 
     try {
-      setLoading(true);
       setError(null);
-      setProgress('파일을 읽고 있어요');
-
       const result = await uploadFile(file);
       const uploadedWords = result.data.words;
 
       // 모든 단어 입력 (한글 포함)
       setWords(uploadedWords.join('\n'));
-      setProgress('');
     } catch (err) {
       setError(err.response?.data?.error?.message || '파일을 읽을 수 없어요');
-      setProgress('');
     } finally {
-      setLoading(false);
       // 파일 input 초기화 (같은 파일 재업로드 가능하도록)
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
