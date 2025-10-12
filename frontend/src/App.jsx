@@ -24,6 +24,7 @@ function App() {
   const [searchedCount, setSearchedCount] = useState(0);
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const lineNumbersRef = useRef(null);
 
   const [options, setOptions] = useState({
     meanings: 1,
@@ -212,6 +213,16 @@ function App() {
   const isLevelChanged = canGeneratePdf && options.cefrLevel !== appliedCefrLevel;
   const currentYear = new Date().getFullYear();
 
+  // 라인 수 계산 (최소 12줄)
+  const lineCount = Math.max(12, (words.match(/\n/g) || []).length + 1);
+
+  // Textarea 스크롤 동기화
+  const handleTextareaScroll = (e) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
+
   return (
     <div className="app-surface flex min-h-screen flex-col bg-gradient-to-b from-background via-secondary/20 to-background text-foreground">
       {loading && (
@@ -370,15 +381,33 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <Textarea
-                    ref={wordInputRef}
-                    value={words}
-                    onChange={(e) => setWords(e.target.value)}
-                    placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
-                    rows={12}
-                    className="font-mono text-xs sm:text-sm"
-                    disabled={canGeneratePdf}
-                  />
+                  <div className="relative flex gap-0 overflow-hidden rounded-md border border-border bg-background">
+                    {/* 라인 번호 */}
+                    <div
+                      ref={lineNumbersRef}
+                      className="flex-shrink-0 overflow-hidden border-r border-border bg-secondary/30 px-2 py-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none sm:px-3 sm:text-sm"
+                      style={{ width: '3rem', overflowY: 'hidden' }}
+                    >
+                      {Array.from({ length: lineCount }, (_, i) => (
+                        <div key={i + 1} className="h-6 leading-6">
+                          {i + 1}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Textarea */}
+                    <Textarea
+                      ref={wordInputRef}
+                      value={words}
+                      onChange={(e) => setWords(e.target.value)}
+                      onScroll={handleTextareaScroll}
+                      placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
+                      rows={12}
+                      className="flex-1 resize-none border-0 font-mono text-xs leading-6 focus-visible:ring-0 sm:text-sm"
+                      disabled={canGeneratePdf}
+                      style={{ boxShadow: 'none' }}
+                    />
+                  </div>
                   <div className="flex items-center justify-between px-1">
                     <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
                       {totalWords > 0 ? `${totalWords}개 입력됨` : '단어를 입력해주세요'}
