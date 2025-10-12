@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { lookupWords, uploadFile } from './services/dictionaryApi';
 import { generatePDF } from './utils/pdfGenerator';
 import PDFPreview from './components/PDFPreview';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './com
 import { Input } from './components/ui/input';
 import { Label } from './components/ui/label';
 import { Select } from './components/ui/select';
+import { Textarea } from './components/ui/textarea';
 import { Alert, AlertDescription } from './components/ui/alert';
 import { Loader2 } from 'lucide-react';
 
@@ -211,16 +212,6 @@ function App() {
   const isLevelChanged = canGeneratePdf && options.cefrLevel !== appliedCefrLevel;
   const currentYear = new Date().getFullYear();
 
-  // contentEditable 동기화 (외부 변경 시에만)
-  useEffect(() => {
-    if (wordInputRef.current) {
-      const currentText = wordInputRef.current.textContent || '';
-      if (currentText !== words) {
-        wordInputRef.current.textContent = words;
-      }
-    }
-  }, [words]);
-
   return (
     <div className="app-surface flex min-h-screen flex-col bg-gradient-to-b from-background via-secondary/20 to-background text-foreground">
       {loading && (
@@ -379,32 +370,15 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <div className="relative rounded-md border border-border overflow-hidden" style={{ minHeight: '19.5rem' }}>
-                    {/* Placeholder */}
-                    {!words && (
-                      <div className="absolute inset-0 py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 text-muted-foreground pointer-events-none whitespace-pre-wrap">
-                        한 줄에 하나씩 입력해주세요.{'\n\n'}apple{'\n'}sustainable development{'\n'}make up for{'\n'}I grew up in London.
-                      </div>
-                    )}
-                    <div
-                      ref={wordInputRef}
-                      contentEditable={!canGeneratePdf}
-                      suppressContentEditableWarning
-                      onInput={(e) => setWords(e.currentTarget.textContent || '')}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          // 기본 동작은 허용하되 <div>나 <br>이 아닌 \n만 사용하도록 강제
-                          e.preventDefault();
-                          document.execCommand('insertText', false, '\n');
-                        }
-                      }}
-                      className="w-full py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 outline-none min-h-[19.5rem] whitespace-pre-wrap"
-                      style={{
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word'
-                      }}
-                    />
-                  </div>
+                  <Textarea
+                    ref={wordInputRef}
+                    value={words}
+                    onChange={(e) => setWords(e.target.value)}
+                    placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
+                    rows={12}
+                    disabled={canGeneratePdf}
+                    className="font-mono text-xs sm:text-sm resize-none"
+                  />
                   <div className="flex items-center justify-between px-1">
                     <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
                       {totalWords > 0 ? `${totalWords}개 입력됨` : '단어를 입력해주세요'}
