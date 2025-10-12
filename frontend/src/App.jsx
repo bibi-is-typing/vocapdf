@@ -20,6 +20,7 @@ function App() {
   const [progressPercent, setProgressPercent] = useState(0);
   const [appliedCefrLevel, setAppliedCefrLevel] = useState('A2');
   const [excludedCount, setExcludedCount] = useState(0);
+  const [excludedDetails, setExcludedDetails] = useState({ korean: 0, duplicate: 0, failed: 0 });
   const [searchedCount, setSearchedCount] = useState(0);
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -41,7 +42,7 @@ function App() {
 
   const parseWords = (text) => {
     return text
-      .split(/[\n,;]+/)
+      .split(/\n+/)
       .map(word => word.trim())
       .filter(word => word.length > 0);
   };
@@ -88,14 +89,14 @@ function App() {
 
     // 한글 자동 필터링
     const koreanRegex = /[\uAC00-\uD7AF]/;
-    const filteredWordList = wordList.filter(word => !koreanRegex.test(word));
-    const koreanCount = wordList.length - filteredWordList.length;
+    const nonKoreanList = wordList.filter(word => !koreanRegex.test(word));
+    const koreanCount = wordList.length - nonKoreanList.length;
 
-    if (koreanCount > 0) {
-      setExcludedCount(koreanCount);
-    }
+    // 중복 제거
+    const uniqueList = [...new Set(nonKoreanList)];
+    const duplicateCount = nonKoreanList.length - uniqueList.length;
 
-    if (filteredWordList.length === 0) {
+    if (uniqueList.length === 0) {
       setError('영어 단어를 입력해주세요.');
       return;
     }
@@ -104,13 +105,13 @@ function App() {
       setLoading(true);
       setError(null);
 
-      // 예상 소요 시간 계산 (단어당 약 0.6초 기준)
-      const estimatedSeconds = Math.ceil(filteredWordList.length * 0.6);
+      // 예상 소요 시간 계산 (배치 처리로 항목당 약 0.25초)
+      const estimatedSeconds = Math.ceil(uniqueList.length * 0.25);
       const estimatedTime = estimatedSeconds < 60
         ? `약 ${estimatedSeconds}초`
         : `약 ${Math.ceil(estimatedSeconds / 60)}분`;
 
-      setProgress(`0/${filteredWordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
+      setProgress(`0/${wordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
       setProgressPercent(0);
 
       // 진행률 시뮬레이션 (0% -> 90%까지 점진적 증가)
@@ -122,23 +123,29 @@ function App() {
       let currentPercent = 0;
       const progressTimer = setInterval(() => {
         currentPercent = Math.min(90, currentPercent + percentPerStep);
-        const estimatedProcessed = Math.floor((currentPercent / 100) * filteredWordList.length);
+        const estimatedProcessed = Math.floor((currentPercent / 100) * wordList.length);
         setProgressPercent(Math.floor(currentPercent));
-        setProgress(`${estimatedProcessed}/${filteredWordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
+        setProgress(`${estimatedProcessed}/${wordList.length} 단어를 찾고 있어요 · ${estimatedTime} 소요 예상`);
       }, updateInterval);
 
       try {
-        const result = await lookupWords(filteredWordList, options);
+        const result = await lookupWords(uniqueList, options);
         clearInterval(progressTimer);
 
         // 완료 시 100%로 설정
         setProgressPercent(100);
-        setProgress(`${filteredWordList.length}/${filteredWordList.length} 단어를 찾았어요!`);
+        setProgress(`${wordList.length}/${wordList.length} 단어를 찾았어요!`);
+
+        // 검색 성공/실패 개수 계산
+        const successData = result.data.filter(item => !item.error);
+        const failedCount = uniqueList.length - successData.length;
 
         // 잠시 후 결과 표시
         setTimeout(() => {
           setWordData(result.data);
-          setSearchedCount(result.data.length); // 검색된 단어 수 저장
+          setSearchedCount(successData.length); // 검색 성공한 단어 수
+          setExcludedCount(koreanCount + duplicateCount + failedCount);
+          setExcludedDetails({ korean: koreanCount, duplicate: duplicateCount, failed: failedCount });
           setAppliedCefrLevel(options.cefrLevel);
           setProgress('');
           setProgressPercent(0);
@@ -182,6 +189,7 @@ function App() {
     setProgress('');
     setProgressPercent(0);
     setExcludedCount(0);
+    setExcludedDetails({ korean: 0, duplicate: 0, failed: 0 });
     setSearchedCount(0);
     setOptions({
       meanings: 1,
@@ -296,15 +304,13 @@ function App() {
                 >
                   바로 시작하기
                 </Button>
-                <Button
-                  size="default"
-                  variant="outline"
+                <button
                   onClick={handleGeneratePDF}
                   disabled={!canGeneratePdf}
-                  className="h-12 text-sm transition-all active:scale-95 sm:text-base hover:shadow-lg disabled:active:scale-100"
+                  className="inline-flex h-12 items-center gap-2 rounded-md border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-accent/90 hover:shadow-lg active:scale-95 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 sm:px-4 sm:py-2 sm:text-sm"
                 >
                   PDF 다운로드
-                </Button>
+                </button>
               </div>
             </div>
           </div>
@@ -369,15 +375,27 @@ function App() {
                   </CardDescription>
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
-                <Textarea
-                  ref={wordInputRef}
-                  value={words}
-                  onChange={(e) => setWords(e.target.value)}
-                  placeholder={`이렇게 입력해주세요.\n\napple\nsustainable\nmake up for\nI brushed up on important idioms.`}
-                  rows={12}
-                  className="font-mono text-xs sm:text-sm"
-                  disabled={canGeneratePdf}
-                />
+                <div className="space-y-2">
+                  <Textarea
+                    ref={wordInputRef}
+                    value={words}
+                    onChange={(e) => setWords(e.target.value)}
+                    placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
+                    rows={12}
+                    className="font-mono text-xs sm:text-sm"
+                    disabled={canGeneratePdf}
+                  />
+                  <div className="flex items-center justify-between px-1">
+                    <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
+                      {totalWords > 0 ? `${totalWords}개 입력됨` : '단어를 입력해주세요'}
+                    </span>
+                    {totalWords > 0 && (
+                      <span className={`text-xs font-semibold ${totalWords > 500 ? 'text-destructive' : 'text-primary'} sm:text-sm`}>
+                        {totalWords}/500
+                      </span>
+                    )}
+                  </div>
+                </div>
 
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 shadow-sm sm:p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -456,8 +474,8 @@ function App() {
 
             {isLevelChanged && (
               <Alert variant="warning" className="border border-accent/40 bg-accent/10">
-                <AlertDescription className="text-xs text-foreground sm:text-sm">
-                  <p className="font-medium">레벨이 바뀌었어요. 다시 검색해주세요.</p>
+                <AlertDescription className="text-xs sm:text-sm">
+                  <p className="font-medium text-primary">레벨이 바뀌었어요. 다시 검색해주세요.</p>
                 </AlertDescription>
               </Alert>
             )}
@@ -530,10 +548,36 @@ function App() {
                       <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{searchedCount}개</dd>
                       <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">뜻을 찾았어요</dd>
                     </div>
-                    <div className="flex flex-col gap-1 rounded-lg border border-border/70 bg-card/90 p-2 shadow-md sm:gap-1.5 sm:p-4 lg:gap-2 lg:p-5">
-                      <dt className="text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">제외</dt>
+                    <div className="group relative flex flex-col gap-1 rounded-lg border border-border/70 bg-card/90 p-2 shadow-md sm:gap-1.5 sm:p-4 lg:gap-2 lg:p-5">
+                      <dt className="flex items-center gap-1 text-[8px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-[10px] lg:text-xs">
+                        제외
+                        <svg className="h-3 w-3 sm:h-3.5 sm:w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </dt>
                       <dd className="text-lg font-bold text-foreground sm:text-2xl lg:text-3xl">{excludedCount}개</dd>
-                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">한글·중복 제외</dd>
+                      <dd className="text-[8px] text-muted-foreground sm:text-[10px] lg:text-xs">한글·중복·오타</dd>
+
+                      {/* 툴팁 */}
+                      <div className="pointer-events-none absolute -top-2 left-1/2 z-10 hidden w-max -translate-x-1/2 -translate-y-full rounded-md border border-border bg-card px-3 py-2 text-[10px] shadow-lg group-hover:block sm:text-xs">
+                        <div className="space-y-1">
+                          {excludedDetails.korean > 0 && (
+                            <p className="text-foreground">• 한글: {excludedDetails.korean}개</p>
+                          )}
+                          {excludedDetails.duplicate > 0 && (
+                            <p className="text-foreground">• 중복: {excludedDetails.duplicate}개</p>
+                          )}
+                          {excludedDetails.failed > 0 && (
+                            <p className="text-foreground">• 오타: {excludedDetails.failed}개</p>
+                          )}
+                          {excludedCount === 0 && (
+                            <p className="text-muted-foreground">제외된 항목이 없어요</p>
+                          )}
+                        </div>
+                        {/* 화살표 */}
+                        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 border-4 border-transparent border-t-border"></div>
+                        <div className="absolute left-1/2 top-full h-0 w-0 -translate-x-1/2 -translate-y-px border-4 border-transparent border-t-card"></div>
+                      </div>
                     </div>
                   </dl>
 
@@ -596,11 +640,16 @@ function App() {
                   </Card>
 
                   <Card id="preview" className="border border-border/70 bg-card/90 shadow-lg">
-                    <CardHeader className="space-y-1.5 sm:space-y-2">
+                    <CardHeader>
                       <CardTitle className="text-lg font-semibold text-foreground sm:text-xl">미리보기</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">PDF를 다운받기 전에 확인해보세요.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-3 sm:space-y-4">
+                      {/* 미리보기 안내 문구 */}
+                      <div className="flex items-center justify-center rounded-lg border border-accent/40 bg-accent/10 px-4 py-2.5 text-xs sm:text-sm">
+                        <p className="font-medium text-primary">
+                          미리보기는 대략적인 모습이에요. 실제 PDF는 내용 길이에 따라 페이지당 단어 개수가 조금 다를 수 있어요.
+                        </p>
+                      </div>
                       <PDFPreview
                         wordData={wordData}
                         options={options}

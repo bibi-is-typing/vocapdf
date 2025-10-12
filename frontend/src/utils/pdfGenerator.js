@@ -100,7 +100,7 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.includeNumbering) {
         row.push({
           content: `${numberCounter}.`,
-          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
         });
         numberCounter++;
       }
@@ -109,14 +109,14 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.includeCheckbox) {
         row.push({
           content: '',
-          styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+          styles: { halign: 'center', valign: 'middle', fontSize: 9, fontStyle: 'normal' }
         });
       }
 
       // 문장
       row.push({
         content: item.word,
-        styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+        styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
       });
 
       // 레이아웃 타입에 따른 의미 표시
@@ -151,7 +151,7 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.includeNumbering) {
         row.push({
           content: `${numberCounter}.`,
-          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+          styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
         });
         numberCounter++;
       }
@@ -160,14 +160,14 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
       if (options.includeCheckbox) {
         row.push({
           content: '',
-          styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+          styles: { halign: 'center', valign: 'middle', fontSize: 9, fontStyle: 'normal' }
         });
       }
 
       // 한글 단어
       row.push({
         content: `${item.word} → ${item.englishWord || item.meanings?.[0]?.meaning || ''}`,
-        styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+        styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
       });
 
       // 레이아웃 타입에 따른 의미 표시
@@ -204,7 +204,7 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
     if (options.includeNumbering) {
       row.push({
         content: `${numberCounter}.`,
-        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
       });
       numberCounter++;
     }
@@ -213,14 +213,14 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
     if (options.includeCheckbox) {
       row.push({
         content: '',
-        styles: { halign: 'center', valign: 'middle', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontSize: 9 }
       });
     }
 
     // 단어
     row.push({
       content: item.word,
-      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
     });
 
     // 레이아웃 타입에 따른 의미 표시
@@ -249,143 +249,102 @@ function generateUnifiedPDF(doc, wordData, options, startY, marginLeft, marginRi
     tableBody.push(row);
   }
 
-  // 페이지당 20개씩 나누기
-  const ITEMS_PER_PAGE = 20;
-  const chunks = [];
-  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
-    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
+  // 체크박스 컬럼 인덱스 찾기
+  const checkboxColIndex = options.includeNumbering ? 1 : 0;
+
+  // 컬럼 너비 설정 (고정)
+  const columnStyles = {};
+  let colIndex = 0;
+
+  if (options.includeNumbering) {
+    columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
+    colIndex++;
   }
 
-  // 각 청크를 별도 페이지에 테이블로 생성
-  chunks.forEach((chunk, index) => {
-    if (index > 0) {
-      doc.addPage();
-      startY = marginTop;
+  if (options.includeCheckbox) {
+    columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
+    colIndex++;
+  }
 
+  // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
+  const pageWidth = 210; // A4 width in mm
+  const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
+  const remainingWidth = pageWidth - usedWidth;
+  const itemWidth = remainingWidth * 0.4; // 40%
+  const meaningWidth = remainingWidth * 0.6; // 60%
+
+  columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
+  columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
+
+  // 전체 데이터를 한 번에 테이블로 생성 (autoTable이 자동으로 페이지 넘김 처리)
+  autoTable(doc, {
+    head: [headers],
+    body: tableBody,
+    startY: startY,
+    margin: {
+      top: marginTop,
+      bottom: marginBottom,
+      left: marginLeft,
+      right: marginRight
+    },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [44, 62, 80],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'normal',
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
+    },
+    bodyStyles: {
+      fontSize: 9,
+      fontStyle: 'normal',
+      textColor: [0, 0, 0],
+      valign: 'middle',
+      halign: 'left',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1,
+      overflow: 'linebreak',
+      cellWidth: 'wrap'
+    },
+    alternateRowStyles: {
+      fillColor: [249, 249, 249]
+    },
+    columnStyles: columnStyles,
+    showHead: 'everyPage', // 모든 페이지에 헤더 표시
+    didDrawCell: (data) => {
+      // 체크박스 그리기
+      if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const cellHeight = data.cell.height;
+        const boxSize = 3;
+        const x = cellX + (cellWidth - boxSize) / 2;
+        const y = cellY + (cellHeight - boxSize) / 2;
+
+        // 헤더는 흰색, 바디는 검은색
+        if (data.section === 'head') {
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.3);
+          doc.rect(x, y, boxSize, boxSize);
+        } else {
+          drawCheckbox(doc, x, y, boxSize);
+        }
+      }
+    },
+    didDrawPage: (data) => {
       // 새 페이지마다 날짜 표시 (상단 여백에)
-      if (options.customDate) {
+      if (options.customDate && data.pageNumber > 1) {
         doc.setFontSize(10);
         doc.setTextColor(100, 100, 100);
         doc.text(`Study Date: ${options.customDate}`, marginLeft, 12);
-        // startY는 그대로 20mm 유지
       }
     }
-
-    // 체크박스 컬럼 인덱스 찾기
-    const checkboxColIndex = options.includeNumbering ? 1 : 0;
-
-    // 컬럼 너비 설정 (고정)
-    const columnStyles = {};
-    let colIndex = 0;
-
-    if (options.includeNumbering) {
-      columnStyles[colIndex] = { cellWidth: 12 }; // No. 컬럼
-      colIndex++;
-    }
-
-    if (options.includeCheckbox) {
-      columnStyles[colIndex] = { cellWidth: 10 }; // 체크박스 컬럼
-      colIndex++;
-    }
-
-    // Item과 Meaning 컬럼은 나머지 공간을 균등 분배
-    const pageWidth = 210; // A4 width in mm
-    const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
-    const remainingWidth = pageWidth - usedWidth;
-    const itemWidth = remainingWidth * 0.4; // 40%
-    const meaningWidth = remainingWidth * 0.6; // 60%
-
-    columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
-    columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
-
-    autoTable(doc, {
-      head: [headers],
-      body: chunk,
-      startY: startY,
-      margin: {
-        top: marginTop,
-        bottom: marginBottom,
-        left: marginLeft,
-        right: marginRight
-      },
-      theme: 'grid',
-      headStyles: {
-        fillColor: [44, 62, 80],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'normal',
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      bodyStyles: {
-        fontSize: 10,
-        fontStyle: 'normal',
-        textColor: [0, 0, 0],
-        valign: 'middle',
-        halign: 'left',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      alternateRowStyles: {
-        fillColor: [249, 249, 249]
-      },
-      columnStyles: columnStyles,
-      didDrawCell: (data) => {
-        // 체크박스 그리기
-        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
-          const cellX = data.cell.x;
-          const cellY = data.cell.y;
-          const cellWidth = data.cell.width;
-          const cellHeight = data.cell.height;
-          const boxSize = 3;
-          const x = cellX + (cellWidth - boxSize) / 2;
-          const y = cellY + (cellHeight - boxSize) / 2;
-
-          // 헤더는 흰색, 바디는 검은색
-          if (data.section === 'head') {
-            doc.setDrawColor(255, 255, 255);
-            doc.setLineWidth(0.3);
-            doc.rect(x, y, boxSize, boxSize);
-          } else {
-            drawCheckbox(doc, x, y, boxSize);
-          }
-        }
-      },
-      willDrawCell: (data) => {
-        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
-        if (data.section === 'body' && data.cell.raw) {
-          const text = String(data.cell.raw.content || data.cell.raw);
-          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
-          const cellHeight = 12; // 고정 높이 12mm
-
-          // 텍스트 길이 측정
-          doc.setFontSize(10);
-          const textWidth = doc.getTextWidth(text);
-
-          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
-          const estimatedLines = Math.ceil(textWidth / cellWidth);
-
-          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
-          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
-          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
-          if (estimatedLines > 3) {
-            data.cell.styles.fontSize = 7; // 4줄 이상
-          } else if (estimatedLines > 2) {
-            data.cell.styles.fontSize = 8; // 3줄
-          } else if (estimatedLines > 1.5) {
-            data.cell.styles.fontSize = 9; // 2줄
-          }
-        }
-      }
-    });
   });
 }
 
@@ -498,7 +457,7 @@ function createTableForCategory(doc, data, options, startY, marginLeft, marginRi
     if (options.includeNumbering) {
       row.push({
         content: `${numberCounter}.`,
-        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
       });
       numberCounter++;
     }
@@ -507,13 +466,13 @@ function createTableForCategory(doc, data, options, startY, marginLeft, marginRi
     if (options.includeCheckbox) {
       row.push({
         content: '',
-        styles: { halign: 'center', valign: 'middle', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontSize: 9 }
       });
     }
 
     row.push({
       content: item.word,
-      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
     });
 
     // 레이아웃 타입에 따른 의미 표시
@@ -542,15 +501,6 @@ function createTableForCategory(doc, data, options, startY, marginLeft, marginRi
     tableBody.push(row);
   }
 
-  // 페이지당 20개씩 나누기
-  const ITEMS_PER_PAGE = 20;
-  const chunks = [];
-  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
-    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
-  }
-
-  let currentY = startY;
-
   // 체크박스 컬럼 인덱스
   const checkboxColIndex = options.includeNumbering ? 1 : 0;
 
@@ -578,103 +528,67 @@ function createTableForCategory(doc, data, options, startY, marginLeft, marginRi
   columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
   columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
 
-  // 각 청크를 테이블로 생성
-  chunks.forEach((chunk, index) => {
-    if (index > 0) {
-      doc.addPage();
-      currentY = 20; // marginTop
-    }
+  // 전체 데이터를 한 번에 테이블로 생성 (autoTable이 자동으로 페이지 넘김 처리)
+  autoTable(doc, {
+    head: [headers],
+    body: tableBody,
+    startY: startY,
+    margin: {
+      left: marginLeft,
+      right: marginRight
+    },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [44, 62, 80],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'normal',
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
+    },
+    bodyStyles: {
+      fontSize: 9,
+      fontStyle: 'normal',
+      textColor: [0, 0, 0],
+      valign: 'middle',
+      halign: 'left',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1,
+      overflow: 'linebreak',
+      cellWidth: 'wrap'
+    },
+    alternateRowStyles: {
+      fillColor: [249, 249, 249]
+    },
+    columnStyles: columnStyles,
+    showHead: 'everyPage',
+    didDrawCell: (data) => {
+      if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const cellHeight = data.cell.height;
+        const boxSize = 3;
+        const x = cellX + (cellWidth - boxSize) / 2;
+        const y = cellY + (cellHeight - boxSize) / 2;
 
-    autoTable(doc, {
-      head: [headers],
-      body: chunk,
-      startY: currentY,
-      margin: {
-        left: marginLeft,
-        right: marginRight
-      },
-      theme: 'grid',
-      headStyles: {
-        fillColor: [44, 62, 80],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'normal',
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      bodyStyles: {
-        fontSize: 10,
-        fontStyle: 'normal',
-        textColor: [0, 0, 0],
-        valign: 'middle',
-        halign: 'left',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      alternateRowStyles: {
-        fillColor: [249, 249, 249]
-      },
-      columnStyles: columnStyles,
-      didDrawCell: (data) => {
-        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
-          const cellX = data.cell.x;
-          const cellY = data.cell.y;
-          const cellWidth = data.cell.width;
-          const cellHeight = data.cell.height;
-          const boxSize = 3;
-          const x = cellX + (cellWidth - boxSize) / 2;
-          const y = cellY + (cellHeight - boxSize) / 2;
-
-          // 헤더는 흰색, 바디는 검은색
-          if (data.section === 'head') {
-            doc.setDrawColor(255, 255, 255);
-            doc.setLineWidth(0.3);
-            doc.rect(x, y, boxSize, boxSize);
-          } else {
-            drawCheckbox(doc, x, y, boxSize);
-          }
-        }
-      },
-      willDrawCell: (data) => {
-        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
-        if (data.section === 'body' && data.cell.raw) {
-          const text = String(data.cell.raw.content || data.cell.raw);
-          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
-          const cellHeight = 12; // 고정 높이 12mm
-
-          // 텍스트 길이 측정
-          doc.setFontSize(10);
-          const textWidth = doc.getTextWidth(text);
-
-          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
-          const estimatedLines = Math.ceil(textWidth / cellWidth);
-
-          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
-          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
-          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
-          if (estimatedLines > 3) {
-            data.cell.styles.fontSize = 7; // 4줄 이상
-          } else if (estimatedLines > 2) {
-            data.cell.styles.fontSize = 8; // 3줄
-          } else if (estimatedLines > 1.5) {
-            data.cell.styles.fontSize = 9; // 2줄
-          }
+        // 헤더는 흰색, 바디는 검은색
+        if (data.section === 'head') {
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.3);
+          doc.rect(x, y, boxSize, boxSize);
+        } else {
+          drawCheckbox(doc, x, y, boxSize);
         }
       }
-    });
-
-    currentY = doc.lastAutoTable.finalY;
+    }
   });
 
-  return currentY + 5; // 다음 테이블 시작 위치 반환
+  return doc.lastAutoTable.finalY + 5; // 다음 테이블 시작 위치 반환
 }
 
 /**
@@ -704,7 +618,7 @@ function createSentenceTable(doc, sentences, options, startY, marginLeft, margin
     if (options.includeNumbering) {
       row.push({
         content: `${index + 1}.`,
-        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
       });
     }
 
@@ -712,13 +626,13 @@ function createSentenceTable(doc, sentences, options, startY, marginLeft, margin
     if (options.includeCheckbox) {
       row.push({
         content: '',
-        styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+        styles: { halign: 'center', valign: 'middle', fontSize: 9, fontStyle: 'normal' }
       });
     }
 
     row.push({
       content: item.word || item.original,
-      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
     });
 
     // 레이아웃 타입에 따른 예시 표시
@@ -743,14 +657,6 @@ function createSentenceTable(doc, sentences, options, startY, marginLeft, margin
     return row;
   });
 
-  // 페이지당 20개씩 나누기
-  const ITEMS_PER_PAGE = 20;
-  const chunks = [];
-  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
-    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
-  }
-
-  let currentY = startY;
   const checkboxColIndex = options.includeNumbering ? 1 : 0;
 
   // 컬럼 너비 설정 (고정)
@@ -777,102 +683,67 @@ function createSentenceTable(doc, sentences, options, startY, marginLeft, margin
   columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
   columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
 
-  chunks.forEach((chunk, index) => {
-    if (index > 0) {
-      doc.addPage();
-      currentY = 20;
-    }
+  // 전체 데이터를 한 번에 테이블로 생성 (autoTable이 자동으로 페이지 넘김 처리)
+  autoTable(doc, {
+    head: [headers],
+    body: tableBody,
+    startY: startY,
+    margin: {
+      left: marginLeft,
+      right: marginRight
+    },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [44, 62, 80],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'normal',
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
+    },
+    bodyStyles: {
+      fontSize: 9,
+      fontStyle: 'normal',
+      textColor: [0, 0, 0],
+      valign: 'middle',
+      halign: 'left',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1,
+      overflow: 'linebreak',
+      cellWidth: 'wrap'
+    },
+    alternateRowStyles: {
+      fillColor: [249, 249, 249]
+    },
+    columnStyles: columnStyles,
+    showHead: 'everyPage',
+    didDrawCell: (data) => {
+      if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const cellHeight = data.cell.height;
+        const boxSize = 3;
+        const x = cellX + (cellWidth - boxSize) / 2;
+        const y = cellY + (cellHeight - boxSize) / 2;
 
-    autoTable(doc, {
-      head: [headers],
-      body: chunk,
-      startY: currentY,
-      margin: {
-        left: marginLeft,
-        right: marginRight
-      },
-      theme: 'grid',
-      headStyles: {
-        fillColor: [44, 62, 80],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'normal',
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      bodyStyles: {
-        fontSize: 10,
-        fontStyle: 'normal',
-        textColor: [0, 0, 0],
-        valign: 'middle',
-        halign: 'left',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      alternateRowStyles: {
-        fillColor: [249, 249, 249]
-      },
-      columnStyles: columnStyles,
-      didDrawCell: (data) => {
-        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
-          const cellX = data.cell.x;
-          const cellY = data.cell.y;
-          const cellWidth = data.cell.width;
-          const cellHeight = data.cell.height;
-          const boxSize = 3;
-          const x = cellX + (cellWidth - boxSize) / 2;
-          const y = cellY + (cellHeight - boxSize) / 2;
-
-          // 헤더는 흰색, 바디는 검은색
-          if (data.section === 'head') {
-            doc.setDrawColor(255, 255, 255);
-            doc.setLineWidth(0.3);
-            doc.rect(x, y, boxSize, boxSize);
-          } else {
-            drawCheckbox(doc, x, y, boxSize);
-          }
-        }
-      },
-      willDrawCell: (data) => {
-        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
-        if (data.section === 'body' && data.cell.raw) {
-          const text = String(data.cell.raw.content || data.cell.raw);
-          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
-          const cellHeight = 12; // 고정 높이 12mm
-
-          // 텍스트 길이 측정
-          doc.setFontSize(10);
-          const textWidth = doc.getTextWidth(text);
-
-          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
-          const estimatedLines = Math.ceil(textWidth / cellWidth);
-
-          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
-          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
-          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
-          if (estimatedLines > 3) {
-            data.cell.styles.fontSize = 7; // 4줄 이상
-          } else if (estimatedLines > 2) {
-            data.cell.styles.fontSize = 8; // 3줄
-          } else if (estimatedLines > 1.5) {
-            data.cell.styles.fontSize = 9; // 2줄
-          }
+        // 헤더는 흰색, 바디는 검은색
+        if (data.section === 'head') {
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.3);
+          doc.rect(x, y, boxSize, boxSize);
+        } else {
+          drawCheckbox(doc, x, y, boxSize);
         }
       }
-    });
-
-    currentY = doc.lastAutoTable.finalY;
+    }
   });
 
-  return currentY + 5; // 다음 테이블 시작 위치 반환
+  return doc.lastAutoTable.finalY + 5; // 다음 테이블 시작 위치 반환
 }
 
 /**
@@ -902,7 +773,7 @@ function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight
     if (options.includeNumbering) {
       row.push({
         content: `${index + 1}.`,
-        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 10 }
+        styles: { halign: 'center', valign: 'middle', fontStyle: 'normal', fontSize: 9 }
       });
     }
 
@@ -910,13 +781,13 @@ function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight
     if (options.includeCheckbox) {
       row.push({
         content: '',
-        styles: { halign: 'center', valign: 'middle', fontSize: 10, fontStyle: 'normal' }
+        styles: { halign: 'center', valign: 'middle', fontSize: 9, fontStyle: 'normal' }
       });
     }
 
     row.push({
       content: item.word,
-      styles: { fontStyle: 'normal', fontSize: 10, halign: 'left', valign: 'middle' }
+      styles: { fontStyle: 'normal', fontSize: 9, halign: 'left', valign: 'middle' }
     });
 
     // 레이아웃 타입에 따른 표시
@@ -936,14 +807,6 @@ function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight
     return row;
   });
 
-  // 페이지당 20개씩 나누기
-  const ITEMS_PER_PAGE = 20;
-  const chunks = [];
-  for (let i = 0; i < tableBody.length; i += ITEMS_PER_PAGE) {
-    chunks.push(tableBody.slice(i, i + ITEMS_PER_PAGE));
-  }
-
-  let currentY = startY;
   const checkboxColIndex = options.includeNumbering ? 1 : 0;
 
   // 컬럼 너비 설정 (고정)
@@ -970,102 +833,67 @@ function createKoreanTable(doc, korean, options, startY, marginLeft, marginRight
   columnStyles[colIndex] = { cellWidth: itemWidth }; // Item 컬럼
   columnStyles[colIndex + 1] = { cellWidth: meaningWidth }; // Meaning 컬럼
 
-  chunks.forEach((chunk, index) => {
-    if (index > 0) {
-      doc.addPage();
-      currentY = 20;
-    }
+  // 전체 데이터를 한 번에 테이블로 생성 (autoTable이 자동으로 페이지 넘김 처리)
+  autoTable(doc, {
+    head: [headers],
+    body: tableBody,
+    startY: startY,
+    margin: {
+      left: marginLeft,
+      right: marginRight
+    },
+    theme: 'grid',
+    headStyles: {
+      fillColor: [44, 62, 80],
+      textColor: [255, 255, 255],
+      fontSize: 9,
+      fontStyle: 'normal',
+      halign: 'center',
+      valign: 'middle',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1
+    },
+    bodyStyles: {
+      fontSize: 9,
+      fontStyle: 'normal',
+      textColor: [0, 0, 0],
+      valign: 'middle',
+      halign: 'left',
+      cellPadding: 2,
+      lineColor: [200, 200, 200],
+      lineWidth: 0.1,
+      overflow: 'linebreak',
+      cellWidth: 'wrap'
+    },
+    alternateRowStyles: {
+      fillColor: [249, 249, 249]
+    },
+    columnStyles: columnStyles,
+    showHead: 'everyPage',
+    didDrawCell: (data) => {
+      if (options.includeCheckbox && data.column.index === checkboxColIndex) {
+        const cellX = data.cell.x;
+        const cellY = data.cell.y;
+        const cellWidth = data.cell.width;
+        const cellHeight = data.cell.height;
+        const boxSize = 3;
+        const x = cellX + (cellWidth - boxSize) / 2;
+        const y = cellY + (cellHeight - boxSize) / 2;
 
-    autoTable(doc, {
-      head: [headers],
-      body: chunk,
-      startY: currentY,
-      margin: {
-        left: marginLeft,
-        right: marginRight
-      },
-      theme: 'grid',
-      headStyles: {
-        fillColor: [44, 62, 80],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'normal',
-        halign: 'center',
-        valign: 'middle',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      bodyStyles: {
-        fontSize: 10,
-        fontStyle: 'normal',
-        textColor: [0, 0, 0],
-        valign: 'middle',
-        halign: 'left',
-        cellPadding: 2,
-        minCellHeight: 12,
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1,
-        overflow: 'linebreak',
-        cellWidth: 'wrap'
-      },
-      alternateRowStyles: {
-        fillColor: [249, 249, 249]
-      },
-      columnStyles: columnStyles,
-      didDrawCell: (data) => {
-        if (options.includeCheckbox && data.column.index === checkboxColIndex) {
-          const cellX = data.cell.x;
-          const cellY = data.cell.y;
-          const cellWidth = data.cell.width;
-          const cellHeight = data.cell.height;
-          const boxSize = 3;
-          const x = cellX + (cellWidth - boxSize) / 2;
-          const y = cellY + (cellHeight - boxSize) / 2;
-
-          // 헤더는 흰색, 바디는 검은색
-          if (data.section === 'head') {
-            doc.setDrawColor(255, 255, 255);
-            doc.setLineWidth(0.3);
-            doc.rect(x, y, boxSize, boxSize);
-          } else {
-            drawCheckbox(doc, x, y, boxSize);
-          }
-        }
-      },
-      willDrawCell: (data) => {
-        // 텍스트가 너무 길면 폰트 크기 자동 조정 (행 높이 12mm에 맞춤)
-        if (data.section === 'body' && data.cell.raw) {
-          const text = String(data.cell.raw.content || data.cell.raw);
-          const cellWidth = data.cell.width - 2 * data.cell.padding('horizontal');
-          const cellHeight = 12; // 고정 높이 12mm
-
-          // 텍스트 길이 측정
-          doc.setFontSize(10);
-          const textWidth = doc.getTextWidth(text);
-
-          // 예상 줄 수 계산 (텍스트 너비 / 셀 너비)
-          const estimatedLines = Math.ceil(textWidth / cellWidth);
-
-          // 줄 수에 따라 폰트 크기 조정 (12mm 높이에 맞춤)
-          // 10pt 폰트 기준 줄 높이 약 4mm, 패딩 2mm*2 = 4mm 고려
-          // 사용 가능 높이: 12 - 4 = 8mm (약 2줄)
-          if (estimatedLines > 3) {
-            data.cell.styles.fontSize = 7; // 4줄 이상
-          } else if (estimatedLines > 2) {
-            data.cell.styles.fontSize = 8; // 3줄
-          } else if (estimatedLines > 1.5) {
-            data.cell.styles.fontSize = 9; // 2줄
-          }
+        // 헤더는 흰색, 바디는 검은색
+        if (data.section === 'head') {
+          doc.setDrawColor(255, 255, 255);
+          doc.setLineWidth(0.3);
+          doc.rect(x, y, boxSize, boxSize);
+        } else {
+          drawCheckbox(doc, x, y, boxSize);
         }
       }
-    });
-
-    currentY = doc.lastAutoTable.finalY;
+    }
   });
 
-  return currentY + 5; // 다음 테이블 시작 위치 반환
+  return doc.lastAutoTable.finalY + 5; // 다음 테이블 시작 위치 반환
 }
 
 /**

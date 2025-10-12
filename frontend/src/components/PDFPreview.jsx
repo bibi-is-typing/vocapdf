@@ -80,48 +80,8 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
 
   const totalPages = paginatedData.length;
 
-  // 텍스트 너비를 측정하는 헬퍼 함수 (PDF와 동일한 로직)
-  const measureTextWidth = (text, fontSize = 10) => {
-    // 캔버스를 사용하여 실제 텍스트 너비 측정
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    context.font = `${fontSize}pt Helvetica, Arial, sans-serif`;
-    return context.measureText(String(text)).width;
-  };
-
-  // 텍스트 길이에 따라 폰트 크기 클래스 결정 (PDF와 동일한 로직)
-  const getFontSizeClass = (text, cellWidthMm) => {
-    if (!text) return '';
-
-    // mm를 픽셀로 변환 (1mm ≈ 3.78px at 96 DPI)
-    const cellWidthPx = cellWidthMm * 3.78;
-
-    // cellPadding (2mm * 2) ��외
-    const availableWidth = cellWidthPx - (2 * 3.78 * 2);
-
-    // 텍스트 너비 측정 (10pt 폰트 기준)
-    const textWidth = measureTextWidth(text, 10);
-
-    // 예상 줄 수 계산
-    const estimatedLines = Math.ceil(textWidth / availableWidth);
-
-    // 줄 수에 따라 폰트 크기 조정 (PDF와 동일한 로직)
-    if (estimatedLines > 3) return 'font-small';   // 7pt - 4줄 이상
-    if (estimatedLines > 2) return 'font-medium';  // 8pt - 3줄
-    if (estimatedLines > 1.5) return 'font-large'; // 9pt - 2줄
-    return '';  // 10pt (기본)
-  };
-
   // 테이블 행 생성
   const renderTableRows = (items, startNumber = 1) => {
-    // 컬럼 너비 계산 (PDF와 동일)
-    const pageWidth = 210; // A4 width in mm
-    const marginLeft = 15, marginRight = 15;
-    const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
-    const remainingWidth = pageWidth - usedWidth;
-    const itemWidthMm = remainingWidth * 0.4; // 40%
-    const meaningWidthMm = remainingWidth * 0.6; // 60%
-
     return items.map((item, index) => {
       const rowNumber = startNumber + index;
 
@@ -153,9 +113,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           );
         }
 
-        const sentenceFontClass = getFontSizeClass(item.word || item.original, itemWidthMm);
-        const translationFontClass = getFontSizeClass(examplesText, meaningWidthMm);
-
         return (
           <tr key={index} className="preview-row">
             {options.includeNumbering && (
@@ -164,13 +121,13 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             {options.includeCheckbox && (
               <td className="preview-cell cell-checkbox">☐</td>
             )}
-            <td className={`preview-cell cell-sentence ${sentenceFontClass}`}>
+            <td className="preview-cell cell-sentence">
               {item.word || item.original}
             </td>
             {options.layoutType === 'memorization' ? (
               <td className="preview-cell cell-blank"></td>
             ) : (
-              <td className={`preview-cell cell-translation ${translationFontClass}`}>
+              <td className="preview-cell cell-translation">
                 {examplesContent.length > 0 ? examplesContent : '-'}
               </td>
             )}
@@ -180,14 +137,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
 
       // 한글 타입
       if (item.type === 'korean') {
-        const koreanWord = `${item.word} → ${item.englishWord || item.meanings?.[0]?.meaning || ''}`;
-        const koreanMeaning = item.englishWord || item.meanings?.[0]?.meaning || '-';
-        const koreanDefinition = item.meanings?.[0]?.definition || '';
-        const fullMeaning = koreanDefinition ? `${koreanMeaning}\n\n${koreanDefinition}` : koreanMeaning;
-
-        const wordFontClass = getFontSizeClass(koreanWord, itemWidthMm);
-        const meaningFontClass = getFontSizeClass(fullMeaning, meaningWidthMm);
-
         return (
           <tr key={index} className="preview-row">
             {options.includeNumbering && (
@@ -196,13 +145,13 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             {options.includeCheckbox && (
               <td className="preview-cell cell-checkbox">☐</td>
             )}
-            <td className={`preview-cell cell-word ${wordFontClass}`}>
+            <td className="preview-cell cell-word">
               {item.word} → {item.englishWord || item.meanings?.[0]?.meaning || ''}
             </td>
             {options.layoutType === 'memorization' ? (
               <td className="preview-cell cell-blank"></td>
             ) : (
-              <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
+              <td className="preview-cell cell-meaning">
                 {item.englishWord || item.meanings?.[0]?.meaning || '-'}
                 {item.meanings?.[0]?.definition && (
                   <div style={{ marginTop: '0.5rem', fontSize: '0.85em', color: '#666' }}>
@@ -221,14 +170,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
       }
 
       const meaning = item.meanings[0];
-      const definitionText = meaning.definition || '-';
-      const exampleText = meaning.examples && meaning.examples.length > 0
-        ? `\n\nExample: ${meaning.examples[0]}`
-        : '';
-      const fullMeaning = definitionText + exampleText;
-
-      const wordFontClass = getFontSizeClass(item.word, itemWidthMm);
-      const meaningFontClass = getFontSizeClass(fullMeaning, meaningWidthMm);
 
       return (
         <tr key={index} className="preview-row">
@@ -238,11 +179,11 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
           )}
-          <td className={`preview-cell cell-word ${wordFontClass}`}>{item.word}</td>
+          <td className="preview-cell cell-word">{item.word}</td>
           {options.layoutType === 'memorization' ? (
             <td className="preview-cell cell-blank"></td>
           ) : (
-            <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
+            <td className="preview-cell cell-meaning">
               {meaning.definition || '-'}
               {meaning.examples && meaning.examples.length > 0 && (
                 <div style={{ marginTop: '0.5rem' }}>
@@ -258,14 +199,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
 
   // 문장 테이블 행 생성
   const renderSentenceRows = (sentences, startNumber = 1) => {
-    // 컬럼 너비 계산 (PDF�� 동일)
-    const pageWidth = 210;
-    const marginLeft = 15, marginRight = 15;
-    const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
-    const remainingWidth = pageWidth - usedWidth;
-    const itemWidthMm = remainingWidth * 0.4;
-    const meaningWidthMm = remainingWidth * 0.6;
-
     return sentences.map((item, index) => {
       const rowNumber = startNumber + index;
 
@@ -295,9 +228,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
         );
       }
 
-      const sentenceFontClass = getFontSizeClass(item.word || item.original, itemWidthMm);
-      const translationFontClass = getFontSizeClass(examplesText, meaningWidthMm);
-
       return (
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
@@ -306,11 +236,11 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
           )}
-          <td className={`preview-cell cell-sentence ${sentenceFontClass}`}>{item.word || item.original}</td>
+          <td className="preview-cell cell-sentence">{item.word || item.original}</td>
           {options.layoutType === 'memorization' ? (
             <td className="preview-cell cell-blank"></td>
           ) : (
-            <td className={`preview-cell cell-translation ${translationFontClass}`}>
+            <td className="preview-cell cell-translation">
               {examplesContent.length > 0 ? examplesContent : '-'}
             </td>
           )}
@@ -321,22 +251,8 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
 
   // 한글 테이블 행 생성
   const renderKoreanRows = (korean, startNumber = 1) => {
-    // 컬럼 너비 계산 (PDF와 동일)
-    const pageWidth = 210;
-    const marginLeft = 15, marginRight = 15;
-    const usedWidth = marginLeft + marginRight + (options.includeNumbering ? 12 : 0) + (options.includeCheckbox ? 10 : 0);
-    const remainingWidth = pageWidth - usedWidth;
-    const itemWidthMm = remainingWidth * 0.4;
-    const meaningWidthMm = remainingWidth * 0.6;
-
     return korean.map((item, index) => {
       const rowNumber = startNumber + index;
-      const koreanMeaning = item.englishWord || item.meanings?.[0]?.meaning || '-';
-      const koreanDefinition = item.meanings?.[0]?.definition || '';
-      const fullMeaning = koreanDefinition ? `${koreanMeaning}\n\n${koreanDefinition}` : koreanMeaning;
-
-      const wordFontClass = getFontSizeClass(item.word, itemWidthMm);
-      const meaningFontClass = getFontSizeClass(fullMeaning, meaningWidthMm);
 
       return (
         <tr key={index} className="preview-row">
@@ -346,11 +262,11 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
           )}
-          <td className={`preview-cell cell-word ${wordFontClass}`}>{item.word}</td>
+          <td className="preview-cell cell-word">{item.word}</td>
           {options.layoutType === 'memorization' ? (
             <td className="preview-cell cell-blank"></td>
           ) : (
-            <td className={`preview-cell cell-meaning ${meaningFontClass}`}>
+            <td className="preview-cell cell-meaning">
               {item.englishWord || item.meanings?.[0]?.meaning || '-'}
               {item.meanings?.[0]?.definition && (
                 <div style={{ marginTop: '0.5rem', fontSize: '0.85em', color: '#666' }}>
@@ -407,15 +323,13 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             다음 ▶
           </Button>
         </div>
-        <Button
+        <button
           onClick={onGeneratePDF}
-          variant="outline"
-          size="lg"
-          className="text-xs transition-all hover:shadow-lg active:scale-95 sm:text-sm"
+          className="inline-flex items-center gap-2 rounded-md border border-accent bg-accent px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-accent/90 hover:shadow-lg active:scale-95 sm:px-4 sm:py-2 sm:text-sm"
           aria-label="PDF 다운로드"
         >
           PDF 다운로드
-        </Button>
+        </button>
       </div>
 
       {/* 현재 페이지만 표시 */}
