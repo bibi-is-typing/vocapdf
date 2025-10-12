@@ -45,6 +45,56 @@ function parseTextFile(content, filename) {
 }
 
 /**
+ * cat-numbers 명령어 경로를 자동으로 찾기
+ * @returns {string|null} cat-numbers 경로 또는 null
+ */
+function findCatNumbersPath() {
+  // 1. 환경 변수에 지정된 경로 확인
+  if (process.env.CAT_NUMBERS_PATH) {
+    try {
+      execSync(`"${process.env.CAT_NUMBERS_PATH}" --version`, { stdio: 'pipe' });
+      return process.env.CAT_NUMBERS_PATH;
+    } catch (e) {
+      // 환경 변수 경로가 잘못됨, 계속 진행
+    }
+  }
+
+  // 2. 시스템 PATH에서 찾기
+  try {
+    const result = execSync('which cat-numbers', { encoding: 'utf-8', stdio: 'pipe' });
+    if (result && result.trim()) {
+      return result.trim();
+    }
+  } catch (e) {
+    // PATH에 없음, 계속 진행
+  }
+
+  // 3. 일반적인 경로들 시도
+  const homeDir = os.homedir();
+  const commonPaths = [
+    '/usr/local/bin/cat-numbers',
+    `${homeDir}/.local/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.9/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.10/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.11/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.12/bin/cat-numbers`,
+  ];
+
+  for (const cmdPath of commonPaths) {
+    if (fs.existsSync(cmdPath)) {
+      try {
+        execSync(`"${cmdPath}" --version`, { stdio: 'pipe' });
+        return cmdPath;
+      } catch (e) {
+        // 경로는 존재하지만 실행 불가, 계속 진행
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
  * Numbers 파일을 파싱하여 단어 배열 반환
  *
  * @param {Buffer} buffer - Numbers 파일 버퍼
@@ -58,13 +108,10 @@ function parseNumbersFile(buffer) {
     tempFilePath = path.join(os.tmpdir(), `upload_${Date.now()}.numbers`);
     fs.writeFileSync(tempFilePath, buffer);
 
-    // cat-numbers 명령어 경로 결정 (환경 변수 > 시스템 PATH)
-    const catNumbersPath = process.env.CAT_NUMBERS_PATH || 'cat-numbers';
+    // cat-numbers 명령어 자동으로 찾기
+    const catNumbersPath = findCatNumbersPath();
 
-    // cat-numbers 명령어 존재 확인
-    try {
-      execSync(`which "${catNumbersPath}"`, { encoding: 'utf-8' });
-    } catch (e) {
+    if (!catNumbersPath) {
       throw new Error(
         'cat-numbers 명령어를 찾을 수 없습니다. ' +
         'Numbers 파일을 지원하려면 cat-numbers를 설치해주세요. (pip3 install cat-numbers)'
