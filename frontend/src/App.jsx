@@ -370,36 +370,53 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <div className="relative">
-                    {/* 배경 레이어: 입력된 줄에만 구분선 표시 */}
-                    <div
-                      className="pointer-events-none absolute inset-0 overflow-hidden rounded-md border border-border"
-                      style={{ zIndex: 0 }}
-                    >
-                      <div className="p-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6">
-                        {words.split('\n').map((line, index, arr) => (
+                  <div className="relative flex rounded-md border border-border overflow-hidden">
+                    {/* 라인 번호 영역 */}
+                    <div className="flex-shrink-0 bg-secondary/30 border-r border-border pointer-events-none" style={{ width: '3rem', zIndex: 1 }}>
+                      <div className="p-3 pr-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none sm:text-sm sm:leading-6">
+                        {words.split('\n').map((_, index) => (
                           <div
                             key={index}
-                            className={index < arr.length - 1 ? 'border-b border-border/30' : ''}
                             style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
                           >
-                            <span className="opacity-0">{line || '\u00A0'}</span>
+                            {index + 1}
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    {/* 실제 입력 Textarea */}
-                    <Textarea
-                      ref={wordInputRef}
-                      value={words}
-                      onChange={(e) => setWords(e.target.value)}
-                      placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
-                      rows={12}
-                      className="relative font-mono text-xs leading-6 sm:text-sm sm:leading-6 bg-transparent"
-                      disabled={canGeneratePdf}
-                      style={{ zIndex: 1, minHeight: '1.5rem' }}
-                    />
+                    {/* 텍스트 입력 영역 */}
+                    <div className="flex-1 relative">
+                      {/* 배경 레이어: 구분선 표시 */}
+                      <div
+                        className="pointer-events-none absolute inset-0 overflow-hidden"
+                        style={{ zIndex: 0 }}
+                      >
+                        <div className="p-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6">
+                          {words.split('\n').map((line, index, arr) => (
+                            <div
+                              key={index}
+                              className={index < arr.length - 1 ? 'border-b border-border/30' : ''}
+                              style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
+                            >
+                              <span className="opacity-0">{line || '\u00A0'}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 실제 입력 Textarea */}
+                      <Textarea
+                        ref={wordInputRef}
+                        value={words}
+                        onChange={(e) => setWords(e.target.value)}
+                        placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
+                        rows={12}
+                        className="relative font-mono text-xs leading-6 border-0 sm:text-sm sm:leading-6 bg-transparent focus-visible:ring-0 resize-none"
+                        disabled={canGeneratePdf}
+                        style={{ zIndex: 1, minHeight: '1.5rem', boxShadow: 'none' }}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center justify-between px-1">
                     <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
