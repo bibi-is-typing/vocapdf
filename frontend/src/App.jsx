@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { lookupWords, uploadFile } from './services/dictionaryApi';
 import { generatePDF } from './utils/pdfGenerator';
 import PDFPreview from './components/PDFPreview';
@@ -22,27 +22,8 @@ function App() {
   const [excludedCount, setExcludedCount] = useState(0);
   const [excludedDetails, setExcludedDetails] = useState({ korean: 0, duplicate: 0, failed: 0 });
   const [searchedCount, setSearchedCount] = useState(0);
-  const [numbersFileSupport, setNumbersFileSupport] = useState(true); // 기본값 true (로컬 개발)
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
-
-  // 백엔드 기능 확인
-  useEffect(() => {
-    const checkFeatures = async () => {
-      try {
-        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-        const response = await fetch(`${API_URL}/health`);
-        const data = await response.json();
-        if (data.features) {
-          setNumbersFileSupport(data.features.numbersFileSupport);
-        }
-      } catch (err) {
-        // 백엔드 연결 실패 시 기본값 유지
-        console.error('Failed to check backend features:', err);
-      }
-    };
-    checkFeatures();
-  }, []);
 
   const [options, setOptions] = useState({
     meanings: 1,
@@ -454,13 +435,13 @@ function App() {
                           파일 업로드
                         </span>
                         <span className="pointer-events-none absolute -bottom-8 left-1/2 z-10 hidden w-max -translate-x-1/2 rounded-md border border-border bg-card px-2.5 py-1.5 text-[10px] text-foreground shadow-lg group-hover:block sm:text-xs">
-                          {numbersFileSupport ? 'txt, csv, numbers 파일 지원' : 'txt, csv 파일 지원'}
+                          txt, csv 파일 지원
                         </span>
                         <Input
                           ref={fileInputRef}
                           id="file-upload"
                           type="file"
-                          accept={numbersFileSupport ? '.txt,.csv,.numbers' : '.txt,.csv'}
+                          accept=".txt,.csv"
                           onChange={handleFileUpload}
                           disabled={canGeneratePdf}
                           className="sr-only absolute -z-10 h-0 w-0 opacity-0"
