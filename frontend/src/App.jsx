@@ -23,7 +23,6 @@ function App() {
   const [searchedCount, setSearchedCount] = useState(0);
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
-  const lineNumbersRef = useRef(null);
 
   const [options, setOptions] = useState({
     meanings: 1,
@@ -380,68 +379,31 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <div className="relative flex rounded-md border border-border overflow-hidden" style={{ minHeight: '19.5rem' }}>
-                    {/* 라인 번호 영역 */}
-                    <div
-                      ref={lineNumbersRef}
-                      className="flex-shrink-0 bg-secondary/30 border-r border-border overflow-y-hidden pointer-events-none"
-                      style={{ width: '3rem', zIndex: 1 }}
-                    >
-                      <div className="py-3 pr-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none sm:text-sm sm:leading-6">
-                        {words.split('\n').map((_, index) => (
-                          <div
-                            key={index}
-                            style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
-                          >
-                            {index + 1}
-                          </div>
-                        ))}
+                  <div className="relative rounded-md border border-border overflow-hidden" style={{ minHeight: '19.5rem' }}>
+                    {/* Placeholder */}
+                    {!words && (
+                      <div className="absolute inset-0 py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 text-muted-foreground pointer-events-none whitespace-pre-wrap">
+                        한 줄에 하나씩 입력해주세요.{'\n\n'}apple{'\n'}sustainable development{'\n'}make up for{'\n'}I grew up in London.
                       </div>
-                    </div>
-
-                    {/* contenteditable 영역 */}
-                    <div className="flex-1 relative overflow-auto">
-                      {/* Placeholder */}
-                      {!words && (
-                        <div className="absolute inset-0 py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 text-muted-foreground pointer-events-none whitespace-pre-wrap">
-                          한 줄에 하나씩 입력해주세요.{'\n\n'}apple{'\n'}sustainable development{'\n'}make up for{'\n'}I grew up in London.
-                        </div>
-                      )}
-                      <div
-                        ref={wordInputRef}
-                        contentEditable={!canGeneratePdf}
-                        suppressContentEditableWarning
-                        onInput={(e) => setWords(e.currentTarget.textContent || '')}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            const selection = window.getSelection();
-                            const range = selection?.getRangeAt(0);
-                            if (range) {
-                              range.deleteContents();
-                              const textNode = document.createTextNode('\n');
-                              range.insertNode(textNode);
-                              range.setStartAfter(textNode);
-                              range.setEndAfter(textNode);
-                              selection?.removeAllRanges();
-                              selection?.addRange(range);
-                              // onInput 이벤트 트리거
-                              e.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
-                            }
-                          }
-                        }}
-                        onScroll={(e) => {
-                          if (lineNumbersRef.current) {
-                            lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
-                          }
-                        }}
-                        className="py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 outline-none min-h-[19.5rem] whitespace-pre-wrap relative z-10"
-                        style={{
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word'
-                        }}
-                      />
-                    </div>
+                    )}
+                    <div
+                      ref={wordInputRef}
+                      contentEditable={!canGeneratePdf}
+                      suppressContentEditableWarning
+                      onInput={(e) => setWords(e.currentTarget.textContent || '')}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          // 기본 동작은 허용하되 <div>나 <br>이 아닌 \n만 사용하도록 강제
+                          e.preventDefault();
+                          document.execCommand('insertText', false, '\n');
+                        }
+                      }}
+                      className="w-full py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6 outline-none min-h-[19.5rem] whitespace-pre-wrap"
+                      style={{
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word'
+                      }}
+                    />
                   </div>
                   <div className="flex items-center justify-between px-1">
                     <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
