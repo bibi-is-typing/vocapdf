@@ -198,7 +198,8 @@ async function lookupWords(inputs, options, onProgress) {
 
   const allInputs = categorized.allItems;
 
-  const BATCH_SIZE = 10;
+  // 문장 처리 안정성을 위해 배치 크기 축소
+  const BATCH_SIZE = 3;
   const batches = chunkArray(allInputs, BATCH_SIZE);
   const totalItems = allInputs.length;
 
@@ -245,7 +246,7 @@ async function lookupWords(inputs, options, onProgress) {
     }
 
     if (batchIndex < batches.length - 1) {
-      await sleep(1000);
+      await sleep(2000);
     }
   }
 

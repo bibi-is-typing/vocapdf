@@ -33,7 +33,7 @@ async function fetchFromGemini(input, type, options = {}) {
 
   try {
     const client = getGeminiClient();
-    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = client.getGenerativeModel({ model: 'gemini-2.5-flash-lite' });
 
     // CEFR 레벨에 맞는 설명 지시사항
     const cefrInstructions = {
@@ -152,6 +152,7 @@ Provide ${options.meanings || 2} meanings if available. If you don't know the wo
         const cleanedContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
         jsonData = JSON.parse(cleanedContent);
       } catch (parseError) {
+        console.error(`  [${input}] ❌ Gemini JSON parse error:`, content.substring(0, 200));
         return {
           original: input,
           examples: [],
@@ -182,6 +183,7 @@ Provide ${options.meanings || 2} meanings if available. If you don't know the wo
     return jsonData;
 
   } catch (error) {
+    console.error(`  [${input}] ❌ Gemini API error:`, error.message);
     throw error;
   }
 }
@@ -280,7 +282,10 @@ async function fetchFromGeminiWithRetry(input, type, options) {
       }
 
       if (attempt < MAX_RETRIES) {
+        console.log(`  [${input}] Retrying Gemini API (attempt ${attempt + 1}/${MAX_RETRIES})...`);
         await sleep(500);
+      } else {
+        console.error(`  [${input}] All Gemini API retries failed:`, error.message);
       }
     }
   }
