@@ -1,6 +1,9 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { execSync } = require('child_process');
+const os = require('os');
+const fs = require('fs');
 const { PORT } = require('./config/constants');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
@@ -36,13 +39,63 @@ app.use(cors({
 app.use(express.json()); // JSON 파싱
 app.use(express.urlencoded({ extended: true })); // URL-encoded 파싱
 
+/**
+ * cat-numbers 명령어가 사용 가능한지 확인
+ * @returns {boolean}
+ */
+function isCatNumbersAvailable() {
+  // 1. 환경 변수 경로 확인
+  if (process.env.CAT_NUMBERS_PATH) {
+    try {
+      execSync(`"${process.env.CAT_NUMBERS_PATH}" --version`, { stdio: 'pipe' });
+      return true;
+    } catch (e) {
+      // 환경 변수 경로가 잘못됨, 계속 진행
+    }
+  }
+
+  // 2. 시스템 PATH 확인
+  try {
+    execSync('which cat-numbers', { stdio: 'pipe' });
+    return true;
+  } catch (e) {
+    // PATH에 없음, 계속 진행
+  }
+
+  // 3. 일반적인 경로들 확인
+  const homeDir = os.homedir();
+  const commonPaths = [
+    '/usr/local/bin/cat-numbers',
+    `${homeDir}/.local/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.9/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.10/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.11/bin/cat-numbers`,
+    `${homeDir}/Library/Python/3.12/bin/cat-numbers`,
+  ];
+
+  for (const cmdPath of commonPaths) {
+    if (fs.existsSync(cmdPath)) {
+      try {
+        execSync(`"${cmdPath}" --version`, { stdio: 'pipe' });
+        return true;
+      } catch (e) {
+        // 경로는 존재하지만 실행 불가, 계속 진행
+      }
+    }
+  }
+
+  return false;
+}
 
 // 헬스 체크 엔드포인트
 app.get('/health', (req, res) => {
   res.json({
     success: true,
     message: 'VocaPDF Backend is running',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    features: {
+      numbersFileSupport: isCatNumbersAvailable()
+    }
   });
 });
 
