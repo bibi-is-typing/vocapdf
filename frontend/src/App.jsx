@@ -370,21 +370,37 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <Textarea
-                    ref={wordInputRef}
-                    value={words}
-                    onChange={(e) => setWords(e.target.value)}
-                    placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
-                    rows={12}
-                    className="font-mono text-xs sm:text-sm"
-                    disabled={canGeneratePdf}
-                    style={{
-                      backgroundImage: 'linear-gradient(transparent, transparent calc(1.5em - 1px), hsl(var(--border) / 0.3) 1px)',
-                      backgroundSize: '100% 1.5em',
-                      lineHeight: '1.5em',
-                      paddingTop: '0.15em'
-                    }}
-                  />
+                  <div className="relative">
+                    {/* 배경 레이어: 입력된 줄에만 구분선 표시 */}
+                    <div
+                      className="pointer-events-none absolute inset-0 overflow-hidden rounded-md border border-border"
+                      style={{ zIndex: 0 }}
+                    >
+                      <div className="p-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6">
+                        {words.split('\n').map((line, index, arr) => (
+                          <div
+                            key={index}
+                            className={index < arr.length - 1 ? 'border-b border-border/30' : ''}
+                            style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
+                          >
+                            <span className="opacity-0">{line || '\u00A0'}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 실제 입력 Textarea */}
+                    <Textarea
+                      ref={wordInputRef}
+                      value={words}
+                      onChange={(e) => setWords(e.target.value)}
+                      placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
+                      rows={12}
+                      className="relative font-mono text-xs leading-6 sm:text-sm sm:leading-6 bg-transparent"
+                      disabled={canGeneratePdf}
+                      style={{ zIndex: 1, minHeight: '1.5rem' }}
+                    />
+                  </div>
                   <div className="flex items-center justify-between px-1">
                     <span className={`text-xs font-medium ${totalWords > 500 ? 'text-destructive' : 'text-muted-foreground'} sm:text-sm`}>
                       {totalWords > 0 ? `${totalWords}개 입력됨` : '단어를 입력해주세요'}
