@@ -48,8 +48,8 @@ function parseTextFile(content, filename) {
  */
 function sanitizeWords(words) {
   const uniqueWords = [...new Set(words)];
-  // 한글(가-힣)도 허용하도록 정규식 수정
-  const validWords = uniqueWords.filter((word) => /^[a-zA-Z가-힣\s.!?,'-]+$/.test(word));
+  // 영문자, 숫자, 공백, 일반적인 문장부호 허용
+  const validWords = uniqueWords.filter((word) => /^[\w\s.!?,'-:+%/()]+$/.test(word));
   return validWords;
 }
 
