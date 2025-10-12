@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { lookupWords, uploadFile } from './services/dictionaryApi';
 import { generatePDF } from './utils/pdfGenerator';
 import PDFPreview from './components/PDFPreview';
@@ -212,6 +212,16 @@ function App() {
   const isLevelChanged = canGeneratePdf && options.cefrLevel !== appliedCefrLevel;
   const currentYear = new Date().getFullYear();
 
+  // contentEditable 동기화 (외부 변경 시에만)
+  useEffect(() => {
+    if (wordInputRef.current) {
+      const currentText = wordInputRef.current.textContent || '';
+      if (currentText !== words) {
+        wordInputRef.current.textContent = words;
+      }
+    }
+  }, [words]);
+
   return (
     <div className="app-surface flex min-h-screen flex-col bg-gradient-to-b from-background via-secondary/20 to-background text-foreground">
       {loading && (
@@ -402,6 +412,24 @@ function App() {
                         contentEditable={!canGeneratePdf}
                         suppressContentEditableWarning
                         onInput={(e) => setWords(e.currentTarget.textContent || '')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            const selection = window.getSelection();
+                            const range = selection?.getRangeAt(0);
+                            if (range) {
+                              range.deleteContents();
+                              const textNode = document.createTextNode('\n');
+                              range.insertNode(textNode);
+                              range.setStartAfter(textNode);
+                              range.setEndAfter(textNode);
+                              selection?.removeAllRanges();
+                              selection?.addRange(range);
+                              // onInput 이벤트 트리거
+                              e.currentTarget.dispatchEvent(new Event('input', { bubbles: true }));
+                            }
+                          }
+                        }}
                         onScroll={(e) => {
                           if (lineNumbersRef.current) {
                             lineNumbersRef.current.scrollTop = e.currentTarget.scrollTop;
@@ -412,9 +440,7 @@ function App() {
                           wordBreak: 'break-word',
                           overflowWrap: 'break-word'
                         }}
-                      >
-                        {words}
-                      </div>
+                      />
                     </div>
                   </div>
                   <div className="flex items-center justify-between px-1">
