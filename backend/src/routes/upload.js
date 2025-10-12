@@ -16,8 +16,25 @@ const upload = multer({
     fileSize: MAX_FILE_SIZE
   },
   fileFilter: (req, file, cb) => {
-    const allowedExtensions = ['.txt', '.csv', '.numbers'];
+    const allowedExtensions = ['.txt', '.csv'];
     const ext = path.extname(file.originalname).toLowerCase();
+
+    // Numbers 파일은 조건부 지원 (cat-numbers 설치 필요)
+    if (ext === '.numbers') {
+      const { execSync } = require('child_process');
+      const catNumbersPath = process.env.CAT_NUMBERS_PATH || 'cat-numbers';
+      try {
+        execSync(`which "${catNumbersPath}"`, { encoding: 'utf-8', stdio: 'pipe' });
+        cb(null, true);
+      } catch (e) {
+        cb(new AppError(
+          'Numbers 파일을 지원하지 않습니다. txt 또는 csv 파일을 사용해주세요.',
+          400,
+          'NUMBERS_NOT_SUPPORTED'
+        ), false);
+      }
+      return;
+    }
 
     if (allowedExtensions.includes(ext)) {
       cb(null, true);

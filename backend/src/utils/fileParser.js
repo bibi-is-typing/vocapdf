@@ -58,8 +58,19 @@ function parseNumbersFile(buffer) {
     tempFilePath = path.join(os.tmpdir(), `upload_${Date.now()}.numbers`);
     fs.writeFileSync(tempFilePath, buffer);
 
-    // Python cat-numbers 명령 실행
-    const catNumbersPath = '/Users/hanbi/Library/Python/3.9/bin/cat-numbers';
+    // cat-numbers 명령어 경로 결정 (환경 변수 > 시스템 PATH)
+    const catNumbersPath = process.env.CAT_NUMBERS_PATH || 'cat-numbers';
+
+    // cat-numbers 명령어 존재 확인
+    try {
+      execSync(`which "${catNumbersPath}"`, { encoding: 'utf-8' });
+    } catch (e) {
+      throw new Error(
+        'cat-numbers 명령어를 찾을 수 없습니다. ' +
+        'Numbers 파일을 지원하려면 cat-numbers를 설치해주세요. (pip3 install cat-numbers)'
+      );
+    }
+
     const output = execSync(`"${catNumbersPath}" "${tempFilePath}"`, {
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024 // 10MB
