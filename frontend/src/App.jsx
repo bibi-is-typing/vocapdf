@@ -24,6 +24,7 @@ function App() {
   const [searchedCount, setSearchedCount] = useState(0);
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
+  const lineNumbersRef = useRef(null);
 
   const [options, setOptions] = useState({
     meanings: 1,
@@ -212,6 +213,13 @@ function App() {
   const isLevelChanged = canGeneratePdf && options.cefrLevel !== appliedCefrLevel;
   const currentYear = new Date().getFullYear();
 
+  // Textarea 스크롤 동기화
+  const handleTextareaScroll = (e) => {
+    if (lineNumbersRef.current) {
+      lineNumbersRef.current.scrollTop = e.target.scrollTop;
+    }
+  };
+
   return (
     <div className="app-surface flex min-h-screen flex-col bg-gradient-to-b from-background via-secondary/20 to-background text-foreground">
       {loading && (
@@ -370,14 +378,18 @@ function App() {
                 </CardHeader>
               <CardContent className="space-y-4 sm:space-y-5">
                 <div className="space-y-2">
-                  <div className="relative flex rounded-md border border-border overflow-hidden">
+                  <div className="relative flex rounded-md border border-border overflow-hidden" style={{ height: '19.5rem' }}>
                     {/* 라인 번호 영역 */}
-                    <div className="flex-shrink-0 bg-secondary/30 border-r border-border pointer-events-none" style={{ width: '3rem', zIndex: 1 }}>
-                      <div className="p-3 pr-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none sm:text-sm sm:leading-6">
+                    <div
+                      ref={lineNumbersRef}
+                      className="flex-shrink-0 bg-secondary/30 border-r border-border overflow-y-hidden pointer-events-none"
+                      style={{ width: '3rem', zIndex: 1 }}
+                    >
+                      <div className="py-3 pr-2 text-right font-mono text-xs leading-6 text-muted-foreground select-none sm:text-sm sm:leading-6">
                         {words.split('\n').map((_, index) => (
                           <div
                             key={index}
-                            style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
+                            style={{ height: '1.5rem', lineHeight: '1.5rem' }}
                           >
                             {index + 1}
                           </div>
@@ -386,18 +398,18 @@ function App() {
                     </div>
 
                     {/* 텍스트 입력 영역 */}
-                    <div className="flex-1 relative">
+                    <div className="flex-1 relative overflow-hidden">
                       {/* 배경 레이어: 구분선 표시 */}
                       <div
                         className="pointer-events-none absolute inset-0 overflow-hidden"
                         style={{ zIndex: 0 }}
                       >
-                        <div className="p-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6">
+                        <div className="py-3 px-3 font-mono text-xs leading-6 sm:text-sm sm:leading-6">
                           {words.split('\n').map((line, index, arr) => (
                             <div
                               key={index}
                               className={index < arr.length - 1 ? 'border-b border-border/30' : ''}
-                              style={{ minHeight: '1.5rem', lineHeight: '1.5rem' }}
+                              style={{ height: '1.5rem', lineHeight: '1.5rem' }}
                             >
                               <span className="opacity-0">{line || '\u00A0'}</span>
                             </div>
@@ -410,11 +422,12 @@ function App() {
                         ref={wordInputRef}
                         value={words}
                         onChange={(e) => setWords(e.target.value)}
+                        onScroll={handleTextareaScroll}
                         placeholder={`한 줄에 하나씩 입력해주세요.\n\napple\nsustainable development\nmake up for\nI grew up in London.`}
                         rows={12}
-                        className="relative font-mono text-xs leading-6 border-0 sm:text-sm sm:leading-6 bg-transparent focus-visible:ring-0 resize-none"
+                        className="relative font-mono text-xs leading-6 border-0 sm:text-sm sm:leading-6 bg-transparent focus-visible:ring-0 resize-none h-full"
                         disabled={canGeneratePdf}
-                        style={{ zIndex: 1, minHeight: '1.5rem', boxShadow: 'none' }}
+                        style={{ zIndex: 1, height: '19.5rem', boxShadow: 'none' }}
                       />
                     </div>
                   </div>
