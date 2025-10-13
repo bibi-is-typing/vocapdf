@@ -27,7 +27,7 @@
 
 **Frontend**: React 19 · Vite 7 · shadcn/ui · Tailwind CSS 3 · pdfMake
 
-**UI/UX**: Toss 스타일 디자인 · 반응형 레이아웃 · 실시간 진행률
+**UI/UX**: 친근하고 직관적인 디자인 · 반응형 레이아웃 · 실시간 진행률
 
 ## 🚀 빠른 시작
 
@@ -150,7 +150,7 @@ Content-Type: multipart/form-data
 ## 🎨 UI/UX 특징
 
 - **shadcn/ui + Tailwind CSS**: 모던하고 일관된 디자인 시스템
-- **Toss 스타일**: 친근하고 직관적인 한국어 UI
+- **친근한 한국어 UI**: 직관적이고 이해하기 쉬운 인터페이스
 - **반응형 디자인**: 모바일/태블릿/데스크톱 최적화
 - **실시간 피드백**:
   - 진행률 표시 (0% → 90% 시뮬레이션)
