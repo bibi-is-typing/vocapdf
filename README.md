@@ -6,7 +6,7 @@
 
 - **CEFR 레벨별 맞춤 정의**: A2~C1 레벨에 맞춘 단어 설명 제공
 - **AI 기반 단어 조회**: Google Gemini AI + Oxford Dictionary + Free Dictionary API 연동
-- **입력 유형 자동 감지**: 단어, 숙어, 문장 자동 구분 및 처리
+- **다양한 입력 지원**: 단어, 숙어, 문장 모두 입력 가능
 - **레이아웃 선택**: 학습용 (예문 포함) / 암기용 (빈칸 채우기)
 - **PDF 스타일 선택**: 테이블 형식 / 텍스트 형식
 - **파일 업로드 지원**: .txt, .csv 파일 (최대 5MB, 500개 항목)
@@ -192,7 +192,7 @@ OXFORD_APP_KEY=your_oxford_app_key
 - **파일 형식**: .txt, .csv만 지원 (.md 미지원)
 - **최대 입력**: 500개 항목, 5MB 파일
 - **API 제한**:
-  - Gemini API: 무료 플랜 일일 요청 제한 (필수)
+  - Gemini API: API 키 필요, 요청량에 따라 과금 (필수)
   - Oxford API: 유료 플랜 필요 (선택 사항)
 - **브라우저 호환**: Chrome, Firefox, Safari, Edge (최신 버전)
 
@@ -204,7 +204,7 @@ OXFORD_APP_KEY=your_oxford_app_key
 
 ### 제한사항
 1. **한글 입력 제한**: 영어만 지원 (한글 입력 시 자동 제외)
-2. **Gemini API 제한**: 무료 플랜 일일 요청 제한 (필수 API)
+2. **Gemini API 비용**: API 키 필요, 요청량에 따라 과금 (필수 API)
 3. **Oxford API 비용**: 유료 플랜 필요 (선택 사항)
 4. **macOS 포트 충돌**: AirPlay Receiver (5000번 포트)
 
