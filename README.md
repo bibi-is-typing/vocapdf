@@ -23,7 +23,7 @@
 
 ## 🛠️ 기술 스택
 
-**Backend**: Node.js 18+ · Express · Google Gemini 2.0 Flash · Oxford Dictionary API · Free Dictionary API
+**Backend**: Node.js 18+ · Express · Google Gemini 2.5 Flash Lite · Oxford Dictionary API · Free Dictionary API
 
 **Frontend**: React 19 · Vite 7 · shadcn/ui · Tailwind CSS 3 · pdfMake
 
@@ -106,7 +106,7 @@ AI가 영어 레벨에 맞춰 단어를 설명합니다:
    - 고품질 영어 정의
    - CEFR 레벨별 정의 제공
    - API 키 필요 (유료, 선택사항)
-3. **Google Gemini 2.0 Flash** (3차 - 모두 지원)
+3. **Google Gemini 2.5 Flash Lite** (3차 - 모두 지원)
    - 단어, 숙어, 문장 모두 지원
    - CEFR 레벨별 맞춤 설명
    - 한국어 번역 제공
@@ -222,7 +222,7 @@ OXFORD_APP_KEY=your_oxford_app_key
 ### v0.3.0 (2025-01-11)
 - **shadcn/ui + Tailwind CSS**: UI 라이브러리 전환
 - **pdfMake**: PDF 생성 라이브러리 변경
-- **Gemini 2.0 Flash + Oxford API**: 다중 API 통합
+- **Gemini 2.5 Flash Lite + Oxford API**: 다중 API 통합
 - **PDF 스타일 옵션**: 테이블/텍스트 형식 선택
 
 ### v0.2.0
