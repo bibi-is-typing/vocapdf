@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import { lookupWords, uploadFile } from './services/dictionaryApi';
 import { generatePDF } from './utils/pdfGenerator';
-import { generatePDFTable } from './utils/pdfGeneratorTable';
 import PDFPreview from './components/PDFPreview';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -166,11 +165,7 @@ function App() {
 
     try {
       setError(null);
-      if (options.pdfStyle === 'table') {
-        generatePDFTable(wordData, options);
-      } else {
-        generatePDF(wordData, options);
-      }
+      generatePDF(wordData, options);
     } catch (err) {
       setError(`PDF를 저장할 수 없어요 (${err.message})`);
     }
