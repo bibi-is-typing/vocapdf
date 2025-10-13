@@ -12,7 +12,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   // options 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(0);
-  }, [options.outputFormat, options.includeCheckbox, options.includeNumbering, options.meaningDisplay, options.layoutType]);
+  }, [options.includeCheckbox, options.includeNumbering, options.meaningDisplay, options.layoutType, options.pdfStyle]);
 
   // 데이터가 없으면 표시 안 함
   if (!wordData || wordData.length === 0) {
@@ -28,18 +28,11 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     return filtered;
   }, [wordData]);
 
-  // outputFormat에 따라 데이터 ���류
+  // 입력 순서 형식으로 데이터 반환
   const organizedData = useMemo(() => {
-    if (options.outputFormat === 'grouped') {
-      return {
-        words: successData.filter(item => item.type === 'word'),
-        phrases: successData.filter(item => item.type === 'phrase'),
-        sentences: successData.filter(item => item.type === 'sentence'),
-        korean: successData.filter(item => item.type === 'korean')
-      };
-    }
     return { all: successData };
-  }, [successData, options.outputFormat]);
+  }, [successData]);
+
 
   // 테이블 헤더 생성
   const getTableHeaders = () => {
@@ -66,17 +59,13 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   const ITEMS_PER_PAGE = 20;
 
   const paginatedData = useMemo(() => {
-    if (options.outputFormat === 'input-order') {
-      const chunks = [];
-      const items = organizedData.all || [];
-      for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
-        chunks.push(items.slice(i, i + ITEMS_PER_PAGE));
-      }
-      return chunks.length > 0 ? chunks : [[]];
-    } else {
-      return [[organizedData]];
+    const chunks = [];
+    const items = organizedData.all || [];
+    for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
+      chunks.push(items.slice(i, i + ITEMS_PER_PAGE));
     }
-  }, [organizedData, options.outputFormat]);
+    return chunks.length > 0 ? chunks : [[]];
+  }, [organizedData]);
 
   const totalPages = paginatedData.length;
 
@@ -116,7 +105,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
         return (
           <tr key={index} className="preview-row">
             {options.includeNumbering && (
-              <td className="preview-cell cell-number">{rowNumber}.</td>
+              <td className="preview-cell cell-number">{rowNumber}</td>
             )}
             {options.includeCheckbox && (
               <td className="preview-cell cell-checkbox">☐</td>
@@ -140,7 +129,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
         return (
           <tr key={index} className="preview-row">
             {options.includeNumbering && (
-              <td className="preview-cell cell-number">{rowNumber}.</td>
+              <td className="preview-cell cell-number">{rowNumber}</td>
             )}
             {options.includeCheckbox && (
               <td className="preview-cell cell-checkbox">☐</td>
@@ -174,7 +163,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
       return (
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
-            <td className="preview-cell cell-number">{rowNumber}.</td>
+            <td className="preview-cell cell-number">{rowNumber}</td>
           )}
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
@@ -231,7 +220,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
       return (
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
-            <td className="preview-cell cell-number">{rowNumber}.</td>
+            <td className="preview-cell cell-number">{rowNumber}</td>
           )}
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
@@ -257,7 +246,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
       return (
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
-            <td className="preview-cell cell-number">{rowNumber}.</td>
+            <td className="preview-cell cell-number">{rowNumber}</td>
           )}
           {options.includeCheckbox && (
             <td className="preview-cell cell-checkbox">☐</td>
@@ -276,6 +265,95 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             </td>
           )}
         </tr>
+      );
+    });
+  };
+
+  // 텍스트 형식 렌더링
+  const renderTextFormat = (items, startNumber = 1) => {
+    return items.map((item, index) => {
+      const rowNumber = startNumber + index;
+      const prefix = options.includeNumbering ? `[${rowNumber}]` : '•';
+
+      // 문장 타입
+      if (item.type === 'sentence') {
+        let meaningText = '';
+        if (options.layoutType !== 'memorization') {
+          let examplesText = '';
+          if (item.examples && item.examples.length > 0) {
+            examplesText = item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
+          }
+          if (item.similarExpressions && item.similarExpressions.length > 0) {
+            if (examplesText) examplesText += '\n';
+            examplesText += item.similarExpressions[0];
+          }
+          meaningText = examplesText;
+        }
+
+        return (
+          <div key={index} className="text-preview-item">
+            <div className="text-preview-prefix">{prefix}</div>
+            <div className="text-preview-content">
+              <div className="text-preview-word">{item.word}</div>
+              <div className="text-preview-inline">
+                <span className="text-preview-colon">: </span>
+                <span className="text-preview-meaning">
+                  {options.layoutType !== 'memorization' ? (meaningText || '-') : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 한글 타입
+      if (item.type === 'korean') {
+        return (
+          <div key={index} className="text-preview-item">
+            <div className="text-preview-prefix">{prefix}</div>
+            <div className="text-preview-content">
+              <div className="text-preview-word">
+                {item.word} → {item.englishWord || item.meanings?.[0]?.meaning || ''}
+              </div>
+              <div className="text-preview-inline">
+                <span className="text-preview-colon">: </span>
+                <span className="text-preview-meaning">
+                  {options.layoutType !== 'memorization'
+                    ? (item.englishWord || item.meanings?.[0]?.meaning || '-')
+                    : ''}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 일반 단어/숙어
+      const meanings = item.meanings || [];
+      if (meanings.length === 0) return null;
+
+      const meaning = meanings[0];
+      let meaningText = '';
+      if (options.layoutType !== 'memorization') {
+        meaningText = meaning.definition || '-';
+        if (meaning.examples && meaning.examples.length > 0) {
+          meaningText += '\nExample: ' + meaning.examples[0];
+        }
+      }
+
+      return (
+        <div key={index} className="text-preview-item">
+          <div className="text-preview-prefix">{prefix}</div>
+          <div className="text-preview-content">
+            <div className="text-preview-word">{item.word}</div>
+            <div className="text-preview-inline">
+              <span className="text-preview-colon">: </span>
+              <span className="text-preview-meaning">
+                {options.layoutType !== 'memorization' ? (meaningText || '-') : ''}
+              </span>
+            </div>
+          </div>
+        </div>
       );
     });
   };
@@ -338,12 +416,12 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
               {/* 날짜 표시 - 상단 여백에 작게 */}
               {options.customDate && (
                 <div className="preview-header">
-                  <p className="preview-date">Study Date: {options.customDate}</p>
+                  <p className="preview-date">Date: {options.customDate}</p>
                 </div>
               )}
 
-          {/* 입력 순서대로 */}
-          {options.outputFormat === 'input-order' && (
+          {/* 표 형식 */}
+          {options.pdfStyle === 'table' && (
             <div className="preview-content">
               <table className="preview-table">
                 <thead>
@@ -366,8 +444,15 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             </div>
           )}
 
-          {/* 타입별 그룹화 */}
-          {options.outputFormat === 'grouped' && (
+          {/* 텍스트 형식 */}
+          {options.pdfStyle === 'text' && (
+            <div className="preview-content text-format">
+              {renderTextFormat(currentPageData, currentPage * ITEMS_PER_PAGE + 1)}
+            </div>
+          )}
+
+          {/* 타입별 그룹화 - 사용 안 함 */}
+          {false && (
             <div className="preview-content">
               {/* 단어 섹션 */}
               {currentPageData.words && currentPageData.words.length > 0 && (

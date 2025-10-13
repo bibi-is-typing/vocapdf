@@ -431,6 +431,59 @@
   }
 }
 
+/* 텍스트 형식 스타일 */
+.preview-content.text-format {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: Helvetica, Arial, sans-serif;
+}
+
+.text-preview-item {
+  display: flex;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.text-preview-prefix {
+  flex-shrink: 0;
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 10pt;
+}
+
+.text-preview-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-preview-word {
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 10pt;
+}
+
+.text-preview-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0;
+}
+
+.text-preview-colon {
+  font-weight: bold;
+  color: #1e3a8a;
+  font-size: 10pt;
+}
+
+.text-preview-meaning {
+  font-size: 10pt;
+  color: #000;
+  white-space: pre-wrap;
+  flex: 1;
+}
+
 /* 인쇄 시 배경 제거 */
 @media print {
   .pdf-preview-wrapper {

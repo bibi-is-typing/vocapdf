@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { lookupWords, uploadFile } from './services/dictionaryApi';
 import { generatePDF } from './utils/pdfGenerator';
+import { generatePDFTable } from './utils/pdfGeneratorTable';
 import PDFPreview from './components/PDFPreview';
 import { Button } from './components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card';
@@ -33,8 +34,8 @@ function App() {
     related: 0,
     meaningDisplay: 'english',
     cefrLevel: 'A2',
-    outputFormat: 'input-order',
     layoutType: 'study',
+    pdfStyle: 'text',
     includeCheckbox: false,
     includeNumbering: true,
     customDate: new Date().toISOString().split('T')[0]
@@ -165,7 +166,11 @@ function App() {
 
     try {
       setError(null);
-      generatePDF(wordData, options);
+      if (options.pdfStyle === 'table') {
+        generatePDFTable(wordData, options);
+      } else {
+        generatePDF(wordData, options);
+      }
     } catch (err) {
       setError(`PDF를 저장할 수 없어요 (${err.message})`);
     }
@@ -193,8 +198,8 @@ function App() {
       related: 0,
       meaningDisplay: 'english',
       cefrLevel: 'A2',
-      outputFormat: 'input-order',
       layoutType: 'study',
+      pdfStyle: 'text',
       includeCheckbox: false,
       includeNumbering: true,
       customDate: new Date().toISOString().split('T')[0]
@@ -582,6 +587,21 @@ function App() {
                     </CardHeader>
                     <CardContent className="space-y-4 sm:space-y-5">
                       <div className="space-y-1.5 sm:space-y-2">
+                        <Label htmlFor="pdfStyle" className="text-xs font-semibold text-muted-foreground sm:text-sm">
+                          출력 형식
+                        </Label>
+                        <Select
+                          id="pdfStyle"
+                          value={options.pdfStyle}
+                          onChange={(e) => setOptions({ ...options, pdfStyle: e.target.value })}
+                          className="text-xs sm:text-sm"
+                        >
+                          <option value="text">텍스트 형식</option>
+                          <option value="table">표 형식</option>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-1.5 sm:space-y-2">
                         <Label htmlFor="layoutType" className="text-xs font-semibold text-muted-foreground sm:text-sm">
                           보기 유형
                         </Label>
@@ -610,16 +630,6 @@ function App() {
                       </div>
 
                       <div className="flex flex-wrap gap-3 sm:gap-4">
-                        <label className="flex items-center gap-1.5 text-xs font-medium text-foreground sm:gap-2 sm:text-sm">
-                          <input
-                            type="checkbox"
-                            checked={options.includeCheckbox}
-                            onChange={(e) => setOptions({ ...options, includeCheckbox: e.target.checked })}
-                            className="h-3.5 w-3.5 accent-primary sm:h-4 sm:w-4"
-                          />
-                          체크박스 표시
-                        </label>
-
                         <label className="flex items-center gap-1.5 text-xs font-medium text-foreground sm:gap-2 sm:text-sm">
                           <input
                             type="checkbox"
