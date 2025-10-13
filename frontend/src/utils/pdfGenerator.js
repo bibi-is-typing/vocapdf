@@ -213,11 +213,6 @@ function generateTableContent(wordData, options) {
     widths.push(30);
   }
 
-  if (options.includeCheckbox) {
-    headerRow.push({ text: '☐', style: 'tableHeader', alignment: 'center' });
-    widths.push(25);
-  }
-
   headerRow.push({ text: 'Item', style: 'tableHeader' });
   headerRow.push({ text: 'Meaning', style: 'tableHeader' });
   widths.push('40%');
@@ -235,11 +230,6 @@ function generateTableContent(wordData, options) {
     // 번호
     if (options.includeNumbering) {
       row.push({ text: numberCounter++, alignment: 'center', fontSize: 10 });
-    }
-
-    // 체크박스
-    if (options.includeCheckbox) {
-      row.push({ text: '☐', alignment: 'center', fontSize: 10 });
     }
 
     // Item (단어/숙어/문장)

@@ -12,7 +12,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
   // options 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(0);
-  }, [options.includeCheckbox, options.includeNumbering, options.meaningDisplay, options.layoutType, options.pdfStyle]);
+  }, [options.includeNumbering, options.layoutType, options.pdfStyle]);
 
   // 데이터가 없으면 표시 안 함
   if (!wordData || wordData.length === 0) {
@@ -41,11 +41,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     // 넘버링 옵션
     if (options.includeNumbering) {
       headers.push({ key: 'number', label: 'No.', width: '50px' });
-    }
-
-    // 체크박스 옵션
-    if (options.includeCheckbox) {
-      headers.push({ key: 'checkbox', label: '☐', width: '40px' });
     }
 
     // 통일된 헤더 사용
@@ -107,9 +102,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
             {options.includeNumbering && (
               <td className="preview-cell cell-number">{rowNumber}</td>
             )}
-            {options.includeCheckbox && (
-              <td className="preview-cell cell-checkbox">☐</td>
-            )}
             <td className="preview-cell cell-sentence">
               {item.word || item.original}
             </td>
@@ -130,9 +122,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           <tr key={index} className="preview-row">
             {options.includeNumbering && (
               <td className="preview-cell cell-number">{rowNumber}</td>
-            )}
-            {options.includeCheckbox && (
-              <td className="preview-cell cell-checkbox">☐</td>
             )}
             <td className="preview-cell cell-word">
               {item.word} → {item.englishWord || item.meanings?.[0]?.meaning || ''}
@@ -164,9 +153,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
             <td className="preview-cell cell-number">{rowNumber}</td>
-          )}
-          {options.includeCheckbox && (
-            <td className="preview-cell cell-checkbox">☐</td>
           )}
           <td className="preview-cell cell-word">{item.word}</td>
           {options.layoutType === 'memorization' ? (
@@ -222,9 +208,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
           {options.includeNumbering && (
             <td className="preview-cell cell-number">{rowNumber}</td>
           )}
-          {options.includeCheckbox && (
-            <td className="preview-cell cell-checkbox">☐</td>
-          )}
           <td className="preview-cell cell-sentence">{item.word || item.original}</td>
           {options.layoutType === 'memorization' ? (
             <td className="preview-cell cell-blank"></td>
@@ -247,9 +230,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
         <tr key={index} className="preview-row">
           {options.includeNumbering && (
             <td className="preview-cell cell-number">{rowNumber}</td>
-          )}
-          {options.includeCheckbox && (
-            <td className="preview-cell cell-checkbox">☐</td>
           )}
           <td className="preview-cell cell-word">{item.word}</td>
           {options.layoutType === 'memorization' ? (
@@ -514,9 +494,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
                         {options.includeNumbering && (
                           <th className="preview-header-cell" style={{ width: '50px' }}>No.</th>
                         )}
-                        {options.includeCheckbox && (
-                          <th className="preview-header-cell" style={{ width: '40px' }}>☐</th>
-                        )}
                         <th className="preview-header-cell">Item</th>
                         <th className="preview-header-cell">Meaning</th>
                       </tr>
@@ -537,9 +514,6 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
                       <tr className="preview-header-row">
                         {options.includeNumbering && (
                           <th className="preview-header-cell" style={{ width: '50px' }}>No.</th>
-                        )}
-                        {options.includeCheckbox && (
-                          <th className="preview-header-cell" style={{ width: '40px' }}>☐</th>
                         )}
                         <th className="preview-header-cell">Item</th>
                         <th className="preview-header-cell">Meaning</th>

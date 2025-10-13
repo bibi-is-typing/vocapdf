@@ -26,16 +26,9 @@ function App() {
   const fileInputRef = useRef(null);
 
   const [options, setOptions] = useState({
-    meanings: 1,
-    definitions: 1,
-    synonyms: 0,
-    antonyms: 0,
-    related: 0,
-    meaningDisplay: 'english',
     cefrLevel: 'A2',
     layoutType: 'study',
     pdfStyle: 'text',
-    includeCheckbox: false,
     includeNumbering: true,
     customDate: new Date().toISOString().split('T')[0]
   });
@@ -123,7 +116,19 @@ function App() {
       }, updateInterval);
 
       try {
-        const result = await lookupWords(uniqueList, options);
+        // 백엔드 API에 필요한 옵션 구성
+        const apiOptions = {
+          meanings: 1,
+          definitions: 1,
+          synonyms: 0,
+          antonyms: 0,
+          related: 0,
+          meaningDisplay: 'english',
+          cefrLevel: options.cefrLevel,
+          outputFormat: 'input-order'
+        };
+
+        const result = await lookupWords(uniqueList, apiOptions);
         clearInterval(progressTimer);
 
         // 완료 시 100%로 설정
@@ -186,16 +191,9 @@ function App() {
     setExcludedDetails({ korean: 0, duplicate: 0, failed: 0 });
     setSearchedCount(0);
     setOptions({
-      meanings: 1,
-      definitions: 1,
-      synonyms: 0,
-      antonyms: 0,
-      related: 0,
-      meaningDisplay: 'english',
       cefrLevel: 'A2',
       layoutType: 'study',
       pdfStyle: 'text',
-      includeCheckbox: false,
       includeNumbering: true,
       customDate: new Date().toISOString().split('T')[0]
     });
