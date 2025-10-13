@@ -9,7 +9,7 @@
 - **입력 유형 자동 감지**: 단어, 숙어, 문장 자동 구분 및 처리
 - **레이아웃 선택**: 학습용 (예문 포함) / 암기용 (빈칸 채우기)
 - **PDF 스타일 선택**: 테이블 형식 / 텍스트 형식
-- **파일 업로드 지원**: .txt, .csv, .md 파일 (최대 5MB, 500개 항목)
+- **파일 업로드 지원**: .txt, .csv 파일 (최대 5MB, 500개 항목)
 - **실시간 진행률 표시**: 단어 조회 중 실시간 진행 상황 확인
 - **PDF 다운로드**: A4 형식의 깔끔한 단어장
 
@@ -46,7 +46,8 @@ cd vocapdf
 cd backend
 npm install
 cp .env.example .env
-# .env 파일에 GEMINI_API_KEY 입력
+# .env 파일에 GEMINI_API_KEY 입력 (필수)
+# OXFORD_APP_ID, OXFORD_APP_KEY 입력 (선택)
 npm run dev  # http://localhost:5001
 
 # Frontend 실행 (새 터미널)
@@ -57,13 +58,14 @@ npm run dev  # http://localhost:5173
 
 ## 📖 사용 방법
 
-1. **단어 입력**: 텍스트 입력 또는 파일 업로드 (.txt, .csv, .md)
+1. **단어 입력**: 텍스트 입력 또는 파일 업로드 (.txt, .csv)
 2. **CEFR 레벨 선택**: A2 (초급) ~ C1 (고급)
 3. **검색**: AI가 단어 뜻을 찾아줍니다
 4. **PDF 옵션 설정**:
-   - 레이아웃: 학습용 (예문 포함) / 암기용 (빈칸)
-   - PDF 스타일: 테이블 형식 / 텍스트 형식
-   - 번호 매기기, 체크박스, 날짜 표시 등
+   - 출력 형식: 텍스트 형식 / 표 형식
+   - 보기 유형: 학습용 (예문 포함) / 암기용 (빈칸)
+   - 번호 표시 옵션
+   - 학습 날짜 설정
 5. **PDF 다운로드**: 나만의 단어장 완성!
 
 ## 🏗️ 프로젝트 구조
@@ -99,22 +101,25 @@ AI가 영어 레벨에 맞춰 단어를 설명합니다:
 ### 다중 API Fallback 전략
 1. **Free Dictionary API** (1차 - 단어만 지원)
    - 무료, rate limit 가능성
+   - 영어 정의 제공
 2. **Oxford Dictionary API** (2차 - CEFR 레벨 지원)
    - 고품질 영어 정의
-   - API 키 필요 (유료)
+   - CEFR 레벨별 정의 제공
+   - API 키 필요 (유료, 선택사항)
 3. **Google Gemini 2.0 Flash** (3차 - 모두 지원)
    - 단어, 숙어, 문장 모두 지원
    - CEFR 레벨별 맞춤 설명
    - 한국어 번역 제공
 
 ### PDF 스타일 옵션
-- **테이블 형식**: 깔끔한 표 형태로 출력
-  - 헤더: No. / ☐ / Item / Meaning
-  - 체크박스, 번호 매기기 옵션
-- **텍스트 형식**: 읽기 편한 텍스트 형태
+- **텍스트 형식**: 읽기 편한 텍스트 형태 (기본값)
   - [번호] 단어
   - : 의미 (들여쓰기)
   - 500개 항목까지 번호 지원
+- **표 형식**: 깔끔한 표 형태로 출력
+  - 헤더: No. / Item / Meaning
+  - 번호 매기기 옵션
+  - 줄무늬 배경 (가독성 향상)
 
 ### 레이아웃 옵션
 - **학습용**: 단어 + 뜻 + 예문
@@ -139,7 +144,7 @@ POST /api/dictionary/lookup
 # 파일 업로드 (최대 5MB, 500개 항목)
 POST /api/upload
 Content-Type: multipart/form-data
-지원 형식: .txt, .csv, .md
+지원 형식: .txt, .csv
 ```
 
 ## 🎨 UI/UX 특징
@@ -160,7 +165,7 @@ Content-Type: multipart/form-data
 ```bash
 # Backend
 PORT=5001
-GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_API_KEY=your_gemini_api_key_here  # 필수
 
 # Oxford API (선택)
 OXFORD_APP_ID=your_oxford_app_id
@@ -177,27 +182,37 @@ OXFORD_APP_KEY=your_oxford_app_key
 ### 성능 최적화
 - API 병렬 처리 (배치 크기 10)
 - 재시도 로직 (최대 2회, 500ms 지연)
-- 배치 간 1초 대기 (rate limit 방지)
+- 배치 간 500ms 대기 (rate limit 방지)
 - 한글 폰트 제거 (번들 크기 ~1.5MB 감소)
 
 ## ⚠️ 주의사항
 
 - **macOS**: AirPlay Receiver 포트 충돌 방지 → Backend `.env`에서 `PORT=5001` 설정
-- **한글 미지원**: 영어 단어/숙어/문장만 입력 가능 (한글 입력 시 검증 에러)
+- **한글 미지원**: 영어 단어/숙어/문장만 입력 가능 (한글 입력 시 자동 제외)
+- **파일 형식**: .txt, .csv만 지원 (.md 미지원)
 - **최대 입력**: 500개 항목, 5MB 파일
 - **API 제한**:
-  - Gemini API: 무료 플랜 일일 요청 제한
+  - Gemini API: 무료 플랜 일일 요청 제한 (필수)
   - Oxford API: 유료 플랜 필요 (선택 사항)
 - **브라우저 호환**: Chrome, Firefox, Safari, Edge (최신 버전)
 
-## 🐛 알려진 이슈
+## 🐛 알려진 이슈 및 제한사항
 
-1. **한글 입력 제한**: 영어만 지원 (한글 입력 시 검증 에러)
-2. **Gemini API 제한**: 무료 플랜 일일 요청 제한
+### 현재 미구현 기능
+1. **체크박스 옵션**: 코드에는 존재하지만 UI에서 활성화 불가 (향후 추가 예정)
+2. **의미 표시 옵션**: 영어 정의로 고정 (한국어/영어+한국어 선택 불가)
+
+### 제한사항
+1. **한글 입력 제한**: 영어만 지원 (한글 입력 시 자동 제외)
+2. **Gemini API 제한**: 무료 플랜 일일 요청 제한 (필수 API)
 3. **Oxford API 비용**: 유료 플랜 필요 (선택 사항)
 4. **macOS 포트 충돌**: AirPlay Receiver (5000번 포트)
 
 ## 🔄 버전 히스토리
+
+### v0.3.2 (2025-01-13)
+- **빌드 수정**: 테이블 형식 PDF 생성 기능 통합
+- **README 업데이트**: 실제 지원 기능과 문서 일치
 
 ### v0.3.1 (2025-01-13)
 - **텍스트 PDF 출력 개선**: 행간, 들여쓰기, 넘버링 공간 최적화
@@ -216,11 +231,30 @@ OXFORD_APP_KEY=your_oxford_app_key
 ### v0.1.0
 - Free Dictionary API 기반 첫 버전
 
-## 📄 라이선스 & 기여
+## 🤝 기여하기
+
+오픈소스 기여를 환영합니다!
+
+### 기여 가능한 영역
+- **기능 개선**: 체크박스 옵션 UI 추가, 의미 표시 옵션 UI 추가
+- **파일 형식**: .md 파일 파서 구현
+- **번역**: 다국어 지원 (영어 UI)
+- **테스트**: 단위 테스트, E2E 테스트 작성
+- **문서**: API 문서, 개발 가이드 개선
+- **버그 수정**: [Issues](https://github.com/bibi-is-typing/vocapdf/issues) 확인
+
+### 기여 방법
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 라이선스 & 연락처
 
 **라이선스**: MIT
 
-**기여**: 버그 리포트나 기능 제안은 [Issues](https://github.com/bibi-is-typing/vocapdf/issues)로 등록해주세요.
+**버그 리포트**: [Issues](https://github.com/bibi-is-typing/vocapdf/issues)에 등록해주세요
 
 **개발**: Made with ❤️ by [@bibi-is-typing](https://github.com/bibi-is-typing)
 
@@ -233,6 +267,7 @@ OXFORD_APP_KEY=your_oxford_app_key
 - [Free Dictionary API](https://dictionaryapi.dev/)
 - [shadcn/ui](https://ui.shadcn.com/)
 - [pdfMake](http://pdfmake.org/)
+- [Tailwind CSS](https://tailwindcss.com/)
 
 ---
 
