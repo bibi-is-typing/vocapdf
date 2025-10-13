@@ -4,10 +4,11 @@
 
 ## 🎯 핵심 정보
 
-**버전**: v0.3.0
+**버전**: v0.3.2
 **스택**: React 19 + Vite 7 / Node.js 18+ + Express
 **UI**: shadcn/ui + Tailwind CSS 3
-**API**: Free Dictionary (1차) → Oxford (2차) → Gemini 2.0 Flash (3차)
+**PDF**: pdfMake (텍스트/테이블 형식)
+**API**: Free Dictionary (1차) → Oxford (2차) → Gemini 2.5 Flash Lite (3차)
 **포트**: Frontend 5173 / Backend 5001
 
 ## 📁 프로젝트 구조
@@ -48,27 +49,28 @@ cd frontend && npm install && npm run dev
 ## 💡 핵심 기능
 
 1. **CEFR 레벨별 맞춤 정의**: A2~C1 레벨에 맞춘 단어 설명
-2. **입력 유형 자동 감지**: 단어/숙어/문장 자동 구분
+2. **다양한 입력 지원**: 단어, 숙어, 문장 모두 입력 가능
 3. **다중 API Fallback**: Free Dictionary → Oxford → Gemini 순서
 4. **레이아웃 옵션**: 학습용 (예문 포함) / 암기용 (빈칸 채우기)
-5. **실시간 진행률 표시**: 단어 조회 중 퍼센트 기반 진행 상황
-6. **PDF 생성**: jsPDF + autotable
+5. **PDF 스타일 선택**: 텍스트 형식 / 테이블 형식
+6. **실시간 진행률 표시**: 단어 조회 중 퍼센트 기반 진행 상황
+7. **PDF 생성**: pdfMake (columns 레이아웃)
 
 ## 🔑 주요 파일
 
 ### Backend
 - `services/dictionaryService.js` - API 조회 오케스트레이션 + 재시도 로직
-- `services/geminiService.js` - Google Gemini 2.0 Flash API 통합
+- `services/geminiService.js` - Google Gemini 2.5 Flash Lite API 통합
 - `services/oxfordDictionaryService.js` - Oxford Dictionary API 통합
-- `utils/inputTypeDetector.js` - 단어/숙어/문장 감지
-- `utils/meaningExtractor.js` - 의미 추출 + meaningDisplay 옵션
+- `utils/inputTypeDetector.js` - 단어/숙어/문장 감지 (내부 로직)
+- `utils/meaningExtractor.js` - 의미 추출 (백엔드에서 사용)
 - `utils/fileParser.js` - 파일 파싱 및 단어 정제
 
 ### Frontend
-- `App.jsx` - 메인 UI (CEFR 레벨, 레이아웃 옵션)
-- `components/PDFPreview.jsx` - PDF 미리보기
-- `components/ui/` - shadcn/ui 컴포넌트 (Button, Card, Input, etc.)
-- `utils/pdfGenerator.js` - PDF 생성 (학습용/암기용 레이아웃)
+- `App.jsx` - 메인 UI (사용자 옵션: cefrLevel, layoutType, pdfStyle, includeNumbering)
+- `components/PDFPreview.jsx` - PDF 미리보기 (텍스트/테이블 형식)
+- `components/ui/` - shadcn/ui 컴포넌트 (Button, Card, Input, Label, Textarea, Select, Alert)
+- `utils/pdfGenerator.js` - pdfMake 기반 PDF 생성 (텍스트/테이블, 학습용/암기용)
 - `services/dictionaryApi.js` - Backend API 통신
 
 ## 📝 코딩 컨벤션
@@ -108,7 +110,7 @@ cd frontend && npm install && npm run dev
 ```
 
 ### POST /api/upload
-multipart/form-data - .txt/.csv/.md 파일
+multipart/form-data - .txt/.csv 파일 (최대 5MB, 500개 항목)
 
 ## 🔄 API Fallback 전략
 
@@ -121,11 +123,11 @@ multipart/form-data - .txt/.csv/.md 파일
    - API 키 필요 (유료)
    - `cefrLevel` 옵션 지원
 
-3. **Google Gemini 2.0 Flash** (3차)
-   - 무료 (일일 요청 제한)
+3. **Google Gemini 2.5 Flash Lite** (3차)
+   - API 키 필요, 요청량에 따라 과금 (필수)
    - 단어/숙어/문장 모두 지원
    - CEFR 레벨별 맞춤 설명
-   - 한국어 번역 제공
+   - 한국어 번역 제공 (meaningDisplay가 'korean' 또는 'both'인 경우)
 
 ## 📚 추가 문서
 
@@ -146,7 +148,13 @@ multipart/form-data - .txt/.csv/.md 파일
 ### API 전환 이력
 - **v0.1.0**: Free Dictionary API만 사용
 - **v0.2.0**: Lingua Robot API 추가 (유료 → 제거됨)
-- **v0.3.0**: Gemini 2.0 Flash + Oxford API 통합
+- **v0.3.0**: Gemini 2.5 Flash Lite + Oxford API 통합
+
+### 코드 정리 (v0.3.2)
+- **프론트엔드 옵션 간소화**: includeCheckbox, meanings, definitions, synonyms, antonyms, related 제거
+- **사용자 옵션**: cefrLevel, layoutType, pdfStyle, includeNumbering, customDate만 유지
+- **백엔드 API 호출**: 프론트엔드에서 하드코딩된 기본값으로 전송 (meanings: 1, definitions: 1, meaningDisplay: 'english')
+- **코드 감소**: 85줄 제거, 순 감소 25줄
 
 ### 성능 최적화
 - Console 로그 40개+ 제거
@@ -172,18 +180,20 @@ multipart/form-data - .txt/.csv/.md 파일
 - **쉼표 구분**: 5단어 이하 + 문장부호 없을 때만 분리
 
 ### PDF 생성
+- **라이브러리**: pdfMake (jsPDF에서 전환)
 - **학습용**: 단어 + 뜻 + 예문
 - **암기용**: 단어 + 빈칸
-- **옵션**: 체크박스, 번호, 날짜 표시
-- **테마**: 'grid' (셀 테두리 가시성)
-- **폰트**: Roboto (기본), Roboto Mono (code)
+- **옵션**: 번호, 날짜 표시 (체크박스 제거됨)
+- **스타일**: 텍스트 형식 (columns 레이아웃) / 테이블 형식
+- **폰트**: Roboto (기본)
 
 ## 🐛 알려진 이슈
 
-1. **한글 입력 제한**: 영어만 지원 (한글 입력 시 검증 에러)
-2. **Gemini API 제한**: 무료 플랜 일일 요청 제한
+1. **한글 입력 제한**: 영어만 지원 (한글 입력 시 자동 제외)
+2. **Gemini API 비용**: API 키 필요, 요청량에 따라 과금 (필수)
 3. **Oxford API 비용**: 유료 플랜 필요 (선택 사항)
 4. **macOS 포트 충돌**: AirPlay Receiver (5000번 포트)
+5. **파일 형식 제한**: .txt, .csv만 지원 (.md 미지원)
 
 ## 🎯 다음 버전 계획 (v0.4.0)
 
@@ -196,4 +206,4 @@ multipart/form-data - .txt/.csv/.md 파일
 
 ---
 
-**마지막 업데이트**: 2025-01-11 (v0.3.1 - UI/UX 개선)
+**마지막 업데이트**: 2025-01-13 (v0.3.2 - 코드 정리 및 문서 업데이트)

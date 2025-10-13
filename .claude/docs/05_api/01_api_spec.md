@@ -11,7 +11,7 @@
 ### Base URL
 
 -   **개발 환경**: `http://localhost:5001`
--   **프로덕션 환경**: `https://api.vocapdf.com` (도메인 연결 시)
+-   **프로덕션 환경**: 배포 시 설정
 
 ### 공통 헤더
 
@@ -24,20 +24,23 @@
 
 ### `POST /api/dictionary/lookup`
 
-여러 단어의 사전 정보를 한 번에 조회하고, 사용자 옵션에 맞게 가공하여 반환합니다.
+여러 단어/숙어/문장의 사전 정보를 한 번에 조회하고, 사용자 옵션에 맞게 가공하여 반환합니다.
 
 #### 요청 (Request)
 
 -   **Body**:
     ```json
     {
-      "words": ["apple", "bank", "computer"],
+      "words": ["apple", "make up for", "I grew up in London."],
       "options": {
-        "meanings": 2,
+        "meanings": 1,
         "definitions": 1,
-        "synonyms": 2,
+        "synonyms": 0,
         "antonyms": 0,
-        "related": 2
+        "related": 0,
+        "meaningDisplay": "english",
+        "cefrLevel": "A2",
+        "outputFormat": "input-order"
       }
     }
     ```
@@ -46,13 +49,18 @@
 
 | 필드 | 타입 | 필수 | 설명 |
 | :--- | :--- | :--: | :--- |
-| `words` | `Array<string>` | ✅ | 조회할 단어 목록 (최대 500개) |
+| `words` | `Array<string>` | ✅ | 조회할 단어/숙어/문장 목록 (최대 500개) |
 | `options` | `Object` | ✅ | 데이터 가공 옵션 |
 | `options.meanings` | `number` | ✅ | 추출할 의미 개수 (1 또는 2) |
 | `options.definitions` | `number` | ✅ | 추출할 영영뜻 개수 (0, 1, 2) |
 | `options.synonyms` | `number` | ✅ | 추출할 유의어 개수 (0, 1, 2) |
 | `options.antonyms` | `number` | ✅ | 추출할 반의어 개수 (0, 1, 2) |
 | `options.related` | `number` | ✅ | 추출할 관계어 개수 (0, 1, 2) |
+| `options.meaningDisplay` | `string` | ✅ | 의미 표시 방식 ('english', 'korean', 'both') |
+| `options.cefrLevel` | `string` | ✅ | CEFR 레벨 ('A2', 'B1', 'B2', 'C1') |
+| `options.outputFormat` | `string` | ✅ | 출력 순서 ('input-order', 'type-grouped') |
+
+**프론트엔드 실제 사용**: 프론트엔드는 `meanings: 1, definitions: 1, synonyms: 0, antonyms: 0, related: 0, meaningDisplay: 'english'`로 고정하여 전송합니다. 사용자가 변경할 수 있는 옵션은 `cefrLevel`뿐입니다.
 
 #### 응답 (Response)
 
@@ -62,52 +70,99 @@
       "success": true,
       "data": [
         {
-          "word": "bank",
+          "word": "apple",
+          "type": "word",
           "meanings": [
             {
               "meaningNumber": 1,
-              "definition": "A financial institution",
-              "synonyms": ["institution", "treasury"],
-              "antonyms": [],
-              "related": []
-            },
-            {
-              "meaningNumber": 2,
-              "definition": "The land alongside a river",
-              "synonyms": ["shore", "riverside"],
+              "definition": "A round fruit with red or green skin",
+              "examples": ["I ate an apple for breakfast."],
+              "synonyms": [],
               "antonyms": [],
               "related": []
             }
           ]
         },
         {
+          "word": "make up for",
+          "type": "phrase",
+          "meanings": [
+            {
+              "meaningNumber": 1,
+              "definition": "To compensate for something",
+              "examples": ["I'll make up for lost time."],
+              "synonyms": [],
+              "antonyms": [],
+              "related": []
+            }
+          ]
+        },
+        {
+          "word": "I grew up in London.",
+          "type": "sentence",
+          "examples": [
+            "This sentence means the speaker spent their childhood in London."
+          ],
+          "similarExpressions": [
+            "I was raised in London."
+          ]
+        },
+        {
           "word": "abcdefghijk",
+          "type": "word",
           "error": "사전에서 찾을 수 없습니다",
           "meanings": []
         }
       ],
       "meta": {
-        "totalWords": 2,
-        "processedWords": 1,
+        "totalWords": 4,
+        "processedWords": 3,
         "failedWords": 1,
-        "processingTime": "1.8s"
+        "processingTime": "2.3s"
       }
     }
     ```
-    -   **특징**: 일부 단어 조회에 실패하더라도 전체 요청은 성공(`success: true`)으로 처리됩니다. 실패한 단어는 `error` 필드를 포함하며, `meta` 객체에 처리 결과가 요약됩니다.
+
+-   **특징**:
+    - 일부 단어 조회에 실패하더라도 전체 요청은 성공(`success: true`)으로 처리됩니다.
+    - 실패한 단어는 `error` 필드를 포함합니다.
+    - `type` 필드로 단어/숙어/문장을 구분합니다.
+    - 문장의 경우 `examples` 및 `similarExpressions`로 활용 예시를 제공합니다.
+
+#### 다중 API Fallback 전략
+
+백엔드는 다음 순서로 API를 호출하여 단어를 조회합니다:
+
+1. **Free Dictionary API** (1차)
+   - 무료, 단어만 지원
+   - 영어 정의 제공
+
+2. **Oxford Dictionary API** (2차)
+   - API 키 필요 (선택사항)
+   - CEFR 레벨별 정의 제공
+   - 고품질 영어 정의
+
+3. **Google Gemini 2.5 Flash Lite** (3차)
+   - API 키 필요 (필수)
+   - 단어/숙어/문장 모두 지원
+   - CEFR 레벨별 맞춤 설명
+   - 한국어 번역 제공 (meaningDisplay가 'korean' 또는 'both'인 경우)
 
 ---
 
-## 📡 엔드포인트: 파일 업로드 (선택사항)
+## 📡 엔드포인트: 파일 업로드
 
 ### `POST /api/upload`
 
-사용자가 업로드한 텍스트 파일(`.csv`, `.txt`, `.md`)을 파싱하여 단어 배열을 반환합니다.
+사용자가 업로드한 텍스트 파일(`.txt`, `.csv`)을 파싱하여 단어 배열을 반환합니다.
+
+**중요**: `.md` 파일은 지원하지 않습니다.
 
 #### 요청 (Request)
 
 -   **Headers**: `Content-Type: multipart/form-data`
 -   **Body (FormData)**: `file` 키에 바이너리 파일 데이터 포함
+-   **파일 제한**: 최대 5MB, 최대 500개 항목
 
 #### 응답 (Response)
 
@@ -119,6 +174,17 @@
         "words": ["apple", "banana", "computer"],
         "count": 3,
         "filename": "words.txt"
+      }
+    }
+    ```
+
+-   **실패 (422 Unprocessable Entity)**: 파일이 500개 초과 항목을 포함하는 경우
+    ```json
+    {
+      "success": false,
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "파일 내 항목이 500개를 초과했습니다 (실제: 650개)"
       }
     }
     ```
@@ -137,7 +203,7 @@
   "error": {
     "code": "ERROR_CODE",
     "message": "에러에 대한 설명",
-    "details": { ... } // 추가 정보 (선택)
+    "details": { } // 추가 정보 (선택)
   }
 }
 ```
@@ -162,15 +228,32 @@
 
 ---
 
+## 🎯 배치 처리
+
+-   단어 조회는 10개 단위로 배치 처리됩니다.
+-   각 배치 간 500ms 대기 시간을 두어 rate limit을 방지합니다.
+-   예상 소요 시간: 항목당 약 0.25초 (배치 처리로 최적화됨)
+
+---
+
 ## 🧪 테스트 예시 (cURL)
 
--   **정상 케이스 (다의어 포함)**:
+-   **정상 케이스 (단어/숙어/문장 혼합)**:
     ```bash
     curl -X POST http://localhost:5001/api/dictionary/lookup \
       -H "Content-Type: application/json" \
       -d '{
-        "words": ["apple", "bank"],
-        "options": { "meanings": 2, "definitions": 1, "synonyms": 2, "antonyms": 0, "related": 0 }
+        "words": ["apple", "make up for", "I grew up in London."],
+        "options": {
+          "meanings": 1,
+          "definitions": 1,
+          "synonyms": 0,
+          "antonyms": 0,
+          "related": 0,
+          "meaningDisplay": "english",
+          "cefrLevel": "B1",
+          "outputFormat": "input-order"
+        }
       }'
     ```
 
@@ -180,7 +263,16 @@
       -H "Content-Type: application/json" \
       -d '{
         "words": ["word1", "word2", ..., "word501"],
-        "options": { "meanings": 1, "definitions": 1, "synonyms": 0, "antonyms": 0, "related": 0 }
+        "options": {
+          "meanings": 1,
+          "definitions": 1,
+          "synonyms": 0,
+          "antonyms": 0,
+          "related": 0,
+          "meaningDisplay": "english",
+          "cefrLevel": "A2",
+          "outputFormat": "input-order"
+        }
       }'
     # 예상 응답: 422 Unprocessable Entity
     ```
@@ -188,4 +280,5 @@
 ---
 
 ## 📝 문서 이력
+- 2025-01-13: 현재 코드베이스에 맞춰 전면 개정 (Gemini API, CEFR 레벨, 옵션 간소화 반영)
 - 2025-10-09: 초안 작성

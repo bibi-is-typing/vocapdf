@@ -12,7 +12,7 @@
 
 #### React
 
--   **버전**: 18.x
+-   **버전**: 19.x
 -   **역할**: UI 라이브러리
 -   **선택 이유**:
     -   컴포넌트 기반 구조로 재사용성과 유지보수성이 높음.
@@ -21,7 +21,7 @@
 
 #### Vite
 
--   **버전**: 5.x
+-   **버전**: 7.x
 -   **역할**: 빌드 도구 및 번들러
 -   **선택 이유**:
     -   ESM(ECMAScript Modules) 기반의 빠른 개발 서버 구동.
@@ -30,57 +30,41 @@
 
 ### 라이브러리
 
-#### jsPDF
+#### pdfMake
 
--   **버전**: 2.5.x
+-   **버전**: 0.2.x
 -   **역할**: PDF 생성
 -   **선택 이유**:
     -   서버 의존성 없이 클라이언트 측에서 동적으로 PDF 생성 가능.
-    -   서버 부하를 줄일 수 있어 비용 효율적임.
-    -   API가 직관적이고 사용법이 간단함.
+    -   선언적인 문서 정의 방식으로 복잡한 레이아웃 구성이 쉬움.
+    -   columns, tables, 텍스트 스타일링 등 다양한 레이아웃 지원.
+    -   자동 페이지 나누기 및 폰트 관리가 내장되어 있음.
 -   **설치**:
     ```bash
-    npm install jspdf
+    npm install pdfmake
     ```
 -   **사용 예시**:
     ```javascript
-    import jsPDF from 'jspdf';
+    import pdfMake from 'pdfmake/build/pdfmake';
+    import * as pdfFonts from 'pdfmake/build/vfs_fonts';
 
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4'
-    });
+    pdfMake.vfs = pdfFonts.pdfMake.vfs;
 
-    doc.text('Hello World', 10, 10);
-    doc.save('document.pdf');
-    ```
-
-#### jsPDF-AutoTable
-
--   **버전**: 3.8.x
--   **역할**: jsPDF용 테이블 생성 플러그인
--   **선택 이유**:
-    -   복잡한 테이블 데이터를 PDF에 쉽게 추가 가능.
-    -   자동 페이지 나누기, 스타일링, 셀 병합 등 고급 기능 지원.
--   **설치**:
-    ```bash
-    npm install jspdf-autotable
-    ```
--   **사용 예시**:
-    ```javascript
-    import jsPDF from 'jspdf';
-    import 'jspdf-autotable';
-
-    const doc = new jsPDF();
-    doc.autoTable({
-      head: [['단어', '뜻']],
-      body: [
-        ['apple', 'a fruit'],
-        ['banana', 'a fruit']
+    const docDefinition = {
+      content: [
+        { text: 'Hello World', fontSize: 16, bold: true },
+        {
+          table: {
+            body: [
+              ['Cell 1', 'Cell 2'],
+              ['Cell 3', 'Cell 4']
+            ]
+          }
+        }
       ]
-    });
-    doc.save('table.pdf');
+    };
+
+    pdfMake.createPdf(docDefinition).download('document.pdf');
     ```
 
 #### Axios
@@ -96,43 +80,44 @@
     npm install axios
     ```
 
-#### React Hook Form
-
--   **버전**: 7.x
--   **역할**: 폼(Form) 상태 관리
--   **선택 이유**:
-    -   불필요한 리렌더링을 최소화하여 폼 성능 최적화.
-    -   직관적인 API로 폼 상태 및 유효성 검증을 쉽게 구현.
--   **설치**:
-    ```bash
-    npm install react-hook-form
-    ```
-
 ### 스타일링
 
-#### CSS Modules
+#### Tailwind CSS
 
--   **역할**: 컴포넌트 단위 스타일링
+-   **버전**: 3.x
+-   **역할**: Utility-first CSS 프레임워크
 -   **선택 이유**:
-    -   스타일을 각 컴포넌트 파일에 종속시켜 전역 스코프 오염 방지.
-    -   클래스명 충돌 문제로부터 자유로움.
-    -   별도 라이브러리 설치 없이 Vite에서 기본 지원.
--   **사용 예시**:
-    ```css
-    /* App.module.css */
-    .container {
-      padding: 20px;
-      border: 1px solid #ddd;
-    }
+    -   클래스 기반 스타일링으로 빠른 UI 개발 가능.
+    -   일관된 디자인 시스템 구축.
+    -   PurgeCSS로 사용하지 않는 스타일 제거하여 번들 크기 최소화.
+-   **설치**:
+    ```bash
+    npm install -D tailwindcss postcss autoprefixer
+    npx tailwindcss init -p
     ```
-    ```javascript
-    // App.jsx
-    import styles from './App.module.css';
 
-    function App() {
-      return <div className={styles.container}>...</div>;
-    }
+#### shadcn/ui
+
+-   **역할**: UI 컴포넌트 라이브러리
+-   **선택 이유**:
+    -   Radix UI 기반의 접근성이 우수한 컴포넌트.
+    -   Tailwind CSS와 완벽하게 통합.
+    -   복사-붙여넣기 방식으로 컴포넌트를 프로젝트에 직접 추가.
+    -   커스터마이징이 자유로움.
+-   **설치**:
+    ```bash
+    npx shadcn@latest init
+    npx shadcn@latest add button card input textarea select alert
     ```
+-   **사용 컴포넌트**: Button, Card, Input, Label, Textarea, Select, Alert
+
+#### class-variance-authority (CVA)
+
+-   **버전**: 0.7.x
+-   **역할**: 동적 클래스 관리
+-   **선택 이유**:
+    -   shadcn/ui 컴포넌트의 variant 관리에 사용.
+    -   타입 안전한 컴포넌트 variant 정의.
 
 ---
 
@@ -168,14 +153,14 @@
 
 -   **역할**: 외부 API 호출 클라이언트
 -   **선택 이유**:
-    -   Free Dictionary API와 같은 외부 서비스와 통신하기 위해 사용.
+    -   Free Dictionary API, Oxford Dictionary API, Gemini API와 통신.
     -   프론트엔드와 동일한 라이브러리를 사용하여 개발 경험 통일.
 
 #### CORS
 
 -   **역할**: Cross-Origin Resource Sharing 처리 미들웨어
 -   **선택 이유**:
-    -   다른 도메인(e.g., `localhost:5173` vs `localhost:5000`) 간의 API 요청을 허용하기 위해 필수.
+    -   다른 도메인(e.g., `localhost:5173` vs `localhost:5001`) 간의 API 요청을 허용하기 위해 필수.
     -   간단한 설정으로 보안 정책 적용 가능.
 -   **설치**:
     ```bash
@@ -228,7 +213,7 @@
 
 ## 🌐 외부 API
 
-### Free Dictionary API
+### Free Dictionary API (1차)
 
 -   **기본 정보**:
     -   **URL**: `https://api.dictionaryapi.dev`
@@ -239,7 +224,34 @@
 -   **선택 이유**:
     -   인증 절차 없이 즉시 사용 가능한 무료 오픈소스 API.
     -   유의어, 반의어, 발음 등 풍부한 사전 정보를 제공.
-    -   MVP 단계의 프로젝트에 적합한 안정성과 기능.
+-   **제한사항**: 단어만 지원 (숙어/문장 미지원)
+
+### Oxford Dictionary API (2차)
+
+-   **기본 정보**:
+    -   **URL**: `https://od-api.oxforddictionaries.com`
+    -   **버전**: v2
+    -   **인증**: API Key + App ID 필요
+    -   **비용**: 유료 (선택사항)
+-   **선택 이유**:
+    -   고품질 영어 정의 제공.
+    -   CEFR 레벨별 정의 지원.
+    -   신뢰할 수 있는 사전 데이터.
+-   **제한사항**: API 키가 없으면 사용 불가
+
+### Google Gemini 2.5 Flash Lite (3차)
+
+-   **기본 정보**:
+    -   **모델**: `gemini-2.5-flash-lite`
+    -   **SDK**: `@google/generative-ai`
+    -   **인증**: API Key 필요
+    -   **비용**: 유료 (필수)
+-   **선택 이유**:
+    -   단어, 숙어, 문장 모두 지원.
+    -   CEFR 레벨별 맞춤 설명 생성.
+    -   한국어 번역 제공 가능.
+    -   빠른 응답 속도 (Flash Lite 모델).
+-   **사용처**: Free Dictionary와 Oxford API로 찾을 수 없는 단어/숙어/문장 처리
 
 ---
 
@@ -265,15 +277,14 @@
 
 ### 프론트엔드 배포
 
--   **Vercel**:
+-   **Cloudflare Pages**:
     -   **역할**: 프론트엔드 정적 호스팅.
-    -   **선택 이유**: 개인 프로젝트를 위한 무료 플랜, Git 연동을 통한 자동 빌드/배포(CI/CD), 빠른 속도를 위한 CDN 제공.
+    -   **선택 이유**: 무료 플랜, Git 연동을 통한 자동 빌드/배포(CI/CD), 빠른 속도를 위한 CDN 제공.
 
 ### 백엔드 배포
 
--   **맥미니 (로컬 서버)**:
+-   **로컬 서버** (개발 환경):
     -   **역할**: 백엔드 애플리케이션 서버.
-    -   **선택 이유**: 기존에 보유한 하드웨어를 활용하여 초기 비용 절약, 서버 환경에 대한 완전한 제어권 확보.
     -   **필요 도구**: **PM2** (Node.js 프로세스 매니저), **nginx** (리버스 프록시, 선택 사항).
 
 ---
@@ -285,15 +296,21 @@
 ```json
 {
   "dependencies": {
-    "react": "^18.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "axios": "^1.6.0",
-    "jspdf": "^2.5.0",
-    "jspdf-autotable": "^3.8.0",
-    "react-hook-form": "^7.0.0"
+    "pdfmake": "^0.2.0",
+    "tailwindcss": "^3.4.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.0.0",
+    "tailwind-merge": "^2.0.0",
+    "lucide-react": "^0.300.0"
   },
   "devDependencies": {
-    "vite": "^5.0.0",
+    "vite": "^7.0.0",
     "@vitejs/plugin-react": "^4.0.0",
+    "postcss": "^8.4.0",
+    "autoprefixer": "^10.4.0",
     "eslint": "^8.0.0",
     "prettier": "^3.0.0"
   }
@@ -309,7 +326,8 @@
     "axios": "^1.6.0",
     "cors": "^2.8.0",
     "multer": "^1.4.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "@google/generative-ai": "^0.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.0",
@@ -336,5 +354,17 @@
 
 ---
 
+## 🔄 주요 기술 변경 이력
+
+### v0.3.0 (2025-01-11)
+-   **PDF 생성**: jsPDF + jsPDF-AutoTable → pdfMake
+-   **UI 프레임워크**: CSS Modules → shadcn/ui + Tailwind CSS
+-   **React**: 18.x → 19.x
+-   **Vite**: 5.x → 7.x
+-   **API**: Free Dictionary만 사용 → Free Dictionary + Oxford + Gemini 2.5 Flash Lite 다중 Fallback
+
+---
+
 ## 📝 문서 이력
+- 2025-01-13: 현재 코드베이스에 맞춰 전면 개정 (pdfMake, shadcn/ui, Gemini API 반영)
 - 2025-10-09: 초안 작성
