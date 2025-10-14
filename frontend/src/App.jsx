@@ -118,11 +118,6 @@ function App() {
       try {
         // 백엔드 API에 필요한 옵션 구성
         const apiOptions = {
-          meanings: 1,
-          definitions: 1,
-          synonyms: 0,
-          antonyms: 0,
-          related: 0,
           meaningDisplay: 'english',
           cefrLevel: options.cefrLevel,
           outputFormat: 'input-order'
