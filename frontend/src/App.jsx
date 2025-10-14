@@ -25,12 +25,21 @@ function App() {
   const wordInputRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  // 로컬 시간대 기준 오늘 날짜 (YYYY-MM-DD 형식)
+  const getTodayLocalDate = () => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [options, setOptions] = useState({
     cefrLevel: 'A2',
     layoutType: 'study',
     pdfStyle: 'text',
     includeNumbering: true,
-    customDate: new Date().toISOString().split('T')[0],
+    customDate: getTodayLocalDate(),
     meaningDisplay: 'english'
   });
 
@@ -191,7 +200,7 @@ function App() {
       layoutType: 'study',
       pdfStyle: 'text',
       includeNumbering: true,
-      customDate: new Date().toISOString().split('T')[0],
+      customDate: getTodayLocalDate(),
       meaningDisplay: 'english'
     });
     setAppliedCefrLevel('A2');
