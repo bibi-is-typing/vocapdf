@@ -75,7 +75,7 @@ CRITICAL REQUIREMENTS:
 - Make sure all expressions are in English only
 - DO NOT include long explanations or context`;
     } else if (type === 'phrase') {
-      // 숙어
+      // 숙어: 뜻 + 활용 예시
       prompt = `You are a dictionary API for English learners at CEFR ${cefrLevel} level. ${cefrInstruction}
 
 Provide the definition and meaning of the following English idiom/phrase in JSON format.
@@ -95,7 +95,7 @@ Return ONLY a valid JSON object (no markdown, no explanation) with this exact st
           "example": "Example sentence using the idiom"
         }
       ],
-      "synonyms": ["synonym1", "synonym2"],
+      "synonyms": [],
       "antonyms": []
     }
   ],

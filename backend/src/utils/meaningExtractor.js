@@ -59,6 +59,13 @@ function extractMeanings(apiData, options) {
     meaningData.antonyms = extractArray(firstDefinition.antonyms, options.antonyms);
     meaningData.related = []; // Free Dictionary API는 관계어를 직접 제공하지 않음
 
+    // 예문 배열 추가
+    if (firstDefinition.example) {
+      meaningData.examples = [firstDefinition.example];
+    } else {
+      meaningData.examples = [];
+    }
+
     result.meanings.push(meaningData);
   }
 
@@ -141,6 +148,13 @@ function extractMeaningsFromClaude(claudeData, options) {
     meaningData.antonyms = extractArray(meaning.antonyms, options.antonyms);
     meaningData.related = []; // Claude API는 관계어 미제공
 
+    // 예문 배열 추가
+    if (firstDefinition.example) {
+      meaningData.examples = [firstDefinition.example];
+    } else {
+      meaningData.examples = [];
+    }
+
     result.meanings.push(meaningData);
   }
 
@@ -177,7 +191,6 @@ function extractMeaningsFromOxford(oxfordData, options) {
     // meaningDisplay 옵션에 따라 영영뜻 포함
     if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
       meaningData.definition = firstDefinition.definition || '';
-      meaningData.example = firstDefinition.example || '';
     }
 
     // Oxford API는 한국어 번역 미제공
@@ -188,6 +201,13 @@ function extractMeaningsFromOxford(oxfordData, options) {
     meaningData.synonyms = extractArray(meaning.synonyms, options.synonyms || 0);
     meaningData.antonyms = extractArray(meaning.antonyms, options.antonyms || 0);
     meaningData.related = []; // Oxford API는 관계어 미제공
+
+    // 예문 배열 추가
+    if (firstDefinition.example) {
+      meaningData.examples = [firstDefinition.example];
+    } else {
+      meaningData.examples = [];
+    }
 
     result.meanings.push(meaningData);
   }

@@ -69,32 +69,11 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
     return items.map((item, index) => {
       const rowNumber = startNumber + index;
 
-      // 문장 타입
+      // 문장 타입: 유사 표현만 표시
       if (item.type === 'sentence') {
-        // 활용 예시 텍스트 생성
-        let examplesContent = [];
-        let examplesText = '';
-        if (item.examples && item.examples.length > 0) {
-          const exampleText = item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
-          examplesText = 'Usage Examples:\n' + exampleText;
-          examplesContent.push(
-            <div key="examples" style={{ marginBottom: '0.5rem' }}>
-              Usage Examples:
-              {item.examples.map((ex, idx) => (
-                <div key={idx} style={{ marginLeft: '1rem' }}>
-                  {idx + 1}. {ex}
-                </div>
-              ))}
-            </div>
-          );
-        }
+        let similarContent = null;
         if (item.similarExpressions && item.similarExpressions.length > 0) {
-          examplesText += (examplesText ? '\n\n' : '') + item.similarExpressions[0];
-          examplesContent.push(
-            <div key="similar">
-              {item.similarExpressions[0]}
-            </div>
-          );
+          similarContent = item.similarExpressions.join(', ');
         }
 
         return (
@@ -109,7 +88,7 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
               <td className="preview-cell cell-blank"></td>
             ) : (
               <td className="preview-cell cell-translation">
-                {examplesContent.length > 0 ? examplesContent : '-'}
+                {similarContent || '-'}
               </td>
             )}
           </tr>
@@ -255,19 +234,13 @@ function PDFPreview({ wordData, options, onGeneratePDF }) {
       const rowNumber = startNumber + index;
       const prefix = options.includeNumbering ? `[${rowNumber}]` : '•';
 
-      // 문장 타입
+      // 문장 타입: 유사 표현만 표시
       if (item.type === 'sentence') {
         let meaningText = '';
         if (options.layoutType !== 'memorization') {
-          let examplesText = '';
-          if (item.examples && item.examples.length > 0) {
-            examplesText = item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
-          }
           if (item.similarExpressions && item.similarExpressions.length > 0) {
-            if (examplesText) examplesText += '\n';
-            examplesText += item.similarExpressions[0];
+            meaningText = item.similarExpressions.join(', ');
           }
-          meaningText = examplesText;
         }
 
         return (

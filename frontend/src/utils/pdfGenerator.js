@@ -91,19 +91,16 @@ function generateUnifiedContent(wordData, options) {
     let meaningText = '';
 
     if (item.type === 'sentence') {
+      // 문장: 유사 표현만 표시
       itemText = item.word;
       if (options.layoutType === 'memorization') {
         meaningText = '';
       } else {
-        let examplesText = '';
-        if (item.examples && item.examples.length > 0) {
-          examplesText = item.examples.map((ex, idx) => `${idx + 1}. ${ex}`).join('\n');
-        }
         if (item.similarExpressions && item.similarExpressions.length > 0) {
-          if (examplesText) examplesText += '\n';
-          examplesText += item.similarExpressions[0];
+          meaningText = item.similarExpressions.join(', ');
+        } else {
+          meaningText = '';
         }
-        meaningText = examplesText;
       }
     } else if (item.type === 'korean') {
       itemText = `${item.word} → ${item.englishWord || item.meanings?.[0]?.meaning || ''}`;
@@ -119,7 +116,7 @@ function generateUnifiedContent(wordData, options) {
         }
       }
     } else {
-      // 일반 단어/숙어
+      // 일반 단어/숙어: 뜻 + 활용 예시
       const meanings = item.meanings || [];
       if (meanings.length === 0) continue;
 
@@ -133,6 +130,7 @@ function generateUnifiedContent(wordData, options) {
         if (options.meaningDisplay === 'english' || options.meaningDisplay === 'both') {
           const def = meaning.definition || '-';
           meaningText = meaningText ? `${meaningText}\n${def}` : def;
+          // 활용 예시 추가
           if (meaning.examples && meaning.examples.length > 0) {
             meaningText += `\nExample: ${meaning.examples[0]}`;
           }
@@ -237,19 +235,14 @@ function generateTableContent(wordData, options) {
     let meaningText = '';
 
     if (item.type === 'sentence') {
+      // 문장: 유사 표현만 표시
       itemText = item.word;
       if (options.layoutType !== 'memorization') {
-        let examplesText = [];
-        if (item.examples && item.examples.length > 0) {
-          item.examples.forEach((ex, idx) => {
-            examplesText.push(`${idx + 1}. ${ex}`);
-          });
-        }
         if (item.similarExpressions && item.similarExpressions.length > 0) {
-          if (examplesText.length > 0) examplesText.push('');
-          examplesText.push(item.similarExpressions[0]);
+          meaningText = item.similarExpressions.join(', ');
+        } else {
+          meaningText = '';
         }
-        meaningText = examplesText.join('\n');
       }
     } else if (item.type === 'korean') {
       itemText = `${item.word} → ${item.englishWord || item.meanings?.[0]?.meaning || ''}`;
@@ -260,7 +253,7 @@ function generateTableContent(wordData, options) {
         }
       }
     } else {
-      // 일반 단어/숙어
+      // 일반 단어/숙어: 뜻 + 활용 예시
       const meanings = item.meanings || [];
       if (meanings.length === 0) continue;
 
@@ -269,6 +262,7 @@ function generateTableContent(wordData, options) {
 
       if (options.layoutType !== 'memorization') {
         meaningText = meaning.definition || '-';
+        // 활용 예시 추가
         if (meaning.examples && meaning.examples.length > 0) {
           meaningText += `\nExample: ${meaning.examples[0]}`;
         }

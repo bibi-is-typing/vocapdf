@@ -30,7 +30,8 @@ function App() {
     layoutType: 'study',
     pdfStyle: 'text',
     includeNumbering: true,
-    customDate: new Date().toISOString().split('T')[0]
+    customDate: new Date().toISOString().split('T')[0],
+    meaningDisplay: 'english'
   });
 
   const parseWords = (text) => {
@@ -190,7 +191,8 @@ function App() {
       layoutType: 'study',
       pdfStyle: 'text',
       includeNumbering: true,
-      customDate: new Date().toISOString().split('T')[0]
+      customDate: new Date().toISOString().split('T')[0],
+      meaningDisplay: 'english'
     });
     setAppliedCefrLevel('A2');
     // 파일 input 초기화
